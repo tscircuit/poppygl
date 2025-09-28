@@ -28,52 +28,39 @@
  *  --ambient <0..1> Ambient term, default: 0.15
  */
 
-const fs = require("fs");
-const path = require("path");
-const stream = require("stream");
-const PImage = require("pureimage");
-const { mat2, mat3, mat4, vec2, vec3, vec4, quat } = require("gl-matrix");
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { PassThrough } from "node:stream";
+import { pathToFileURL } from "node:url";
+import PImage from "pureimage";
+import { mat2, mat3, mat4, vec2, vec3, vec4, quat } from "gl-matrix";
 
-// -------------------- CLI tiny parser --------------------
-const argv = (() => {
-	const out = { _: [] };
-	const a = process.argv.slice(2);
-	for (let i = 0; i < a.length; i++) {
-		const tok = a[i];
-		if (tok.startsWith("--")) {
-			const key = tok.slice(2);
-			const next = a[i + 1];
-			if (next && !next.startsWith("--")) {
-				out[key] = next;
-				i++;
-			} else out[key] = true;
-		} else {
-			out._.push(tok);
-		}
-	}
-	return out;
-})();
-if (argv._.length === 0) {
-	console.error(
-		"Usage: node render_gltf_soft.js model.gltf [--out out.png] [--w 960] [--h 540] [--fov 60]",
-	);
-	process.exit(1);
+// -------------------- Defaults --------------------
+export const DEFAULT_LIGHT_DIR = [-0.4, -0.9, -0.2] as const;
+
+export interface RenderOptions {
+	width: number;
+	height: number;
+	fov: number;
+	cull: boolean;
+	gamma: boolean;
+	ambient: number;
+	lightDir: readonly [number, number, number];
+	camPos?: readonly [number, number, number] | null;
+	lookAt?: readonly [number, number, number] | null;
 }
 
-const MODEL_PATH = argv._[0];
-const OUT_PATH = argv.out || "out.png";
-const WIDTH = parseInt(argv.w || "800", 10);
-const HEIGHT = parseInt(argv.h || "600", 10);
-const FOV_DEG = parseFloat(argv.fov || "60");
-const CULL = argv.noCull ? false : true;
-const GAMMA = argv.noGamma ? false : true;
-const AMBIENT = Math.max(0, Math.min(1, parseFloat(argv.ambient || "0.15")));
-const LIGHT_DIR = argv.light
-	? argv.light.split(",").map(Number)
-	: [-0.4, -0.9, -0.2];
-
-const CAM_POS = argv.cam ? argv.cam.split(",").map(Number) : null;
-const LOOK_AT = argv.look ? argv.look.split(",").map(Number) : null;
+export const DEFAULT_RENDER_OPTIONS: RenderOptions = {
+	width: 800,
+	height: 600,
+	fov: 60,
+	cull: true,
+	gamma: true,
+	ambient: 0.15,
+	lightDir: DEFAULT_LIGHT_DIR,
+	camPos: null,
+	lookAt: null,
+};
 
 // -------------------- Small utils --------------------
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
@@ -99,9 +86,23 @@ function isJPG(filenameOrUri) {
 }
 
 function bufferToStream(buf) {
-	const s = new stream.PassThrough();
+	const s = new PassThrough();
 	s.end(buf);
 	return s;
+}
+
+async function encodePNGToBuffer(image): Promise<Buffer> {
+	const passThrough = new PassThrough();
+	const chunks: Buffer[] = [];
+	passThrough.on("data", (chunk) => {
+		chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+	});
+	const resultPromise = new Promise<Buffer>((resolve, reject) => {
+		passThrough.on("end", () => resolve(Buffer.concat(chunks)));
+		passThrough.on("error", reject);
+	});
+	await PImage.encodePNGToStream(image, passThrough as any);
+	return await resultPromise;
 }
 
 function srgbEncodeLinear01(x) {
@@ -115,7 +116,7 @@ function mulColor(a, b) {
 }
 
 // -------------------- glTF loader (minimal but robust) --------------------
-async function loadGLTF(gltfPath) {
+export async function loadGLTF(gltfPath) {
 	const baseDir = path.dirname(gltfPath);
 	const gltf = JSON.parse(fs.readFileSync(gltfPath, "utf8"));
 
@@ -452,7 +453,7 @@ async function loadGLTF(gltfPath) {
 }
 
 // -------------------- Software rasterizer --------------------
-class SoftwareRenderer {
+export class SoftwareRenderer {
 	constructor(w, h, options = {}) {
 		this.w = w;
 		this.h = h;
@@ -666,15 +667,23 @@ class SoftwareRenderer {
 					const nrm = [np[0] / nlen, np[1] / nlen, np[2] / nlen];
 
 					// Lighting: Lambert + ambient
+					const lightDir = light && light.dir ? light.dir : DEFAULT_LIGHT_DIR;
+					const ambient = clamp(
+						light && typeof light.ambient === "number"
+							? light.ambient
+							: DEFAULT_RENDER_OPTIONS.ambient,
+						0,
+						1,
+					);
 					const L = vec3.normalize(
 						vec3.create(),
-						vec3.fromValues(LIGHT_DIR[0], LIGHT_DIR[1], LIGHT_DIR[2]),
+						vec3.fromValues(lightDir[0], lightDir[1], lightDir[2]),
 					);
 					const ndotl = Math.max(
 						0,
 						nrm[0] * -L[0] + nrm[1] * -L[1] + nrm[2] * -L[2],
 					);
-					const lit = AMBIENT + (1 - AMBIENT) * ndotl;
+					const lit = ambient + (1 - ambient) * ndotl;
 
 					let r = baseColor[0] * lit;
 					let g = baseColor[1] * lit;
@@ -791,7 +800,7 @@ function computeWorldAABB(drawCalls) {
 }
 
 // Build camera (lookAt + perspective). If no CAM_POS provided, fit to aabb.
-function buildCamera(drawCalls, width, height, fovDeg, camPosOpt, lookAtOpt) {
+export function buildCamera(drawCalls, width, height, fovDeg, camPosOpt, lookAtOpt) {
 	const aspect = width / height;
 	const near = 0.01,
 		far = 1000.0;
@@ -838,27 +847,147 @@ function buildCamera(drawCalls, width, height, fovDeg, camPosOpt, lookAtOpt) {
 	return { view, proj };
 }
 
-// -------------------- Main --------------------
-(async function main() {
-	const { drawCalls } = await loadGLTF(MODEL_PATH);
+// -------------------- Public API --------------------
+export async function renderGLTFToPNGBuffer(
+	gltfPath: string,
+	options: Partial<RenderOptions> = {},
+): Promise<Buffer> {
+	const merged: RenderOptions = {
+		...DEFAULT_RENDER_OPTIONS,
+		...options,
+		lightDir:
+			options.lightDir != null
+				? (options.lightDir as readonly [number, number, number])
+				: DEFAULT_RENDER_OPTIONS.lightDir,
+		camPos:
+			options.camPos !== undefined
+				? (options.camPos as RenderOptions["camPos"])
+				: DEFAULT_RENDER_OPTIONS.camPos,
+		lookAt:
+			options.lookAt !== undefined
+				? (options.lookAt as RenderOptions["lookAt"])
+				: DEFAULT_RENDER_OPTIONS.lookAt,
+	};
 
+	const { drawCalls } = await loadGLTF(gltfPath);
 	const camera = buildCamera(
 		drawCalls,
-		WIDTH,
-		HEIGHT,
-		FOV_DEG,
-		CAM_POS,
-		LOOK_AT,
+		merged.width,
+		merged.height,
+		merged.fov,
+		merged.camPos ?? null,
+		merged.lookAt ?? null,
 	);
-	const renderer = new SoftwareRenderer(WIDTH, HEIGHT);
+	const renderer = new SoftwareRenderer(merged.width, merged.height);
 
 	for (const dc of drawCalls) {
-		renderer.drawMesh(dc, camera, { dir: LIGHT_DIR }, dc.material, CULL, GAMMA);
+		renderer.drawMesh(
+			dc,
+			camera,
+			{ dir: merged.lightDir, ambient: merged.ambient },
+			dc.material,
+			merged.cull,
+			merged.gamma,
+		);
 	}
 
-	await PImage.encodePNGToStream(renderer.img, fs.createWriteStream(OUT_PATH));
-	console.log(`Wrote ${OUT_PATH} (${WIDTH}x${HEIGHT})`);
-})().catch((err) => {
-	console.error(err);
-	process.exit(1);
-});
+	return await encodePNGToBuffer(renderer.img);
+}
+
+export async function renderGLTFToPNGFile(
+	gltfPath: string,
+	outputPath: string,
+	options: Partial<RenderOptions> = {},
+): Promise<Buffer> {
+	const pngBuffer = await renderGLTFToPNGBuffer(gltfPath, options);
+	await fs.promises.writeFile(outputPath, pngBuffer);
+	return pngBuffer;
+}
+
+type ParsedArgs = {
+	_: string[];
+	[key: string]: string | boolean | string[];
+};
+
+function parseCliArgs(args: string[]): ParsedArgs {
+	const out: ParsedArgs = { _: [] };
+	for (let i = 0; i < args.length; i++) {
+		const tok = args[i];
+		if (tok.startsWith("--")) {
+			const key = tok.slice(2);
+			const next = args[i + 1];
+			if (next && !next.startsWith("--")) {
+				out[key] = next;
+				i++;
+			} else out[key] = true;
+		} else {
+			out._.push(tok);
+		}
+	}
+	return out;
+}
+
+function parseVec3(value: unknown): [number, number, number] | null {
+	if (typeof value !== "string") return null;
+	const parts = value.split(",").map(Number);
+	if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) return null;
+	return [parts[0], parts[1], parts[2]];
+}
+
+function isMainModule(meta: ImportMeta): boolean {
+	if (meta && typeof (meta as any).main === "boolean") return !!(meta as any).main;
+	if (!process.argv[1]) return false;
+	try {
+		const entryHref = pathToFileURL(process.argv[1]).href;
+		return entryHref === meta.url;
+	} catch {
+		return false;
+	}
+}
+
+async function runCLI() {
+	const argv = parseCliArgs(process.argv.slice(2));
+	if (argv._.length === 0) {
+		console.error(
+			"Usage: node render_gltf_soft.js model.gltf [--out out.png] [--w 960] [--h 540] [--fov 60]",
+		);
+		process.exit(1);
+	}
+
+	const gltfPath = argv._[0];
+	const outPath = typeof argv.out === "string" ? argv.out : "out.png";
+	const width = parseInt(typeof argv.w === "string" ? argv.w : `${DEFAULT_RENDER_OPTIONS.width}`, 10);
+	const height = parseInt(typeof argv.h === "string" ? argv.h : `${DEFAULT_RENDER_OPTIONS.height}`, 10);
+	const fov = parseFloat(typeof argv.fov === "string" ? argv.fov : `${DEFAULT_RENDER_OPTIONS.fov}`);
+	const ambient = clamp(
+		parseFloat(typeof argv.ambient === "string" ? argv.ambient : `${DEFAULT_RENDER_OPTIONS.ambient}`),
+		0,
+		1,
+	);
+	const lightDir =
+		parseVec3(argv.light) ?? (DEFAULT_LIGHT_DIR as RenderOptions["lightDir"]);
+	const camPos = parseVec3(argv.cam);
+	const lookAt = parseVec3(argv.look);
+	const cull = argv.noCull ? false : true;
+	const gamma = argv.noGamma ? false : true;
+
+	await renderGLTFToPNGFile(gltfPath, outPath, {
+		width,
+		height,
+		fov,
+		ambient,
+		lightDir,
+		camPos,
+		lookAt,
+		cull,
+		gamma,
+	});
+	console.log(`Wrote ${outPath} (${width}x${height})`);
+}
+
+if (isMainModule(import.meta)) {
+	runCLI().catch((err) => {
+		console.error(err);
+		process.exit(1);
+	});
+}
