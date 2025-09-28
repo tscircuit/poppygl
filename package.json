@@ -1,6 +1,11 @@
 {
   "name": "poppygl",
   "main": "dist/index.js",
+  "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tscircuit/poppygl.git"
+  },
   "files": [
     "dist"
   ],
