@@ -1,6 +1,6 @@
 {
   "name": "poppygl",
-  "module": "index.ts",
+  "module": "lib/main.ts",
   "type": "module",
   "private": true,
   "devDependencies": {
