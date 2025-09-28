@@ -135,24 +135,48 @@ async function loadGLTF(gltfPath) {
 		}),
 	);
 
-	// Load images (uri only, file or data-URI)
+	function detectMimeTypeFromBuffer(buf, hint) {
+		if (hint) return hint;
+		if (
+			buf.length >= 8 &&
+			buf[0] === 0x89 &&
+			buf[1] === 0x50 &&
+			buf[2] === 0x4e &&
+			buf[3] === 0x47 &&
+			buf[4] === 0x0d &&
+			buf[5] === 0x0a &&
+			buf[6] === 0x1a &&
+			buf[7] === 0x0a
+		)
+			return "image/png";
+		if (buf.length >= 2 && buf[0] === 0xff && buf[1] === 0xd8)
+			return "image/jpeg";
+		return null;
+	}
+
+	async function decodeImageFromBuffer(buf, mimeType) {
+		const type = detectMimeTypeFromBuffer(buf, mimeType);
+		if (type === "image/png")
+			return PImage.decodePNGFromStream(bufferToStream(buf));
+		if (type === "image/jpeg" || type === "image/jpg")
+			return PImage.decodeJPEGFromStream(bufferToStream(buf));
+		throw new Error("Unsupported embedded image mimeType: " + (mimeType || "unknown"));
+	}
+
+	// Load images (uri, data-URI, or bufferView + mimeType)
 	const images = await Promise.all(
 		(gltf.images || []).map(async (img) => {
-			if (!img.uri) {
-				throw new Error(
-					"images[*].bufferView or no-uri images are not supported in this lightweight loader.",
-				);
-			}
-			if (img.uri.startsWith("data:")) {
-				const buf = bufferFromDataURI(img.uri);
-				if (isPNG(img.uri))
-					return PImage.decodePNGFromStream(bufferToStream(buf));
-				if (isJPG(img.uri))
-					return PImage.decodeJPEGFromStream(bufferToStream(buf));
-				throw new Error(
-					`Unsupported data-URI image type for ${img.uri.slice(0, 32)}...`,
-				);
-			} else {
+			if (img.uri) {
+				if (img.uri.startsWith("data:")) {
+					const buf = bufferFromDataURI(img.uri);
+					if (isPNG(img.uri))
+						return PImage.decodePNGFromStream(bufferToStream(buf));
+					if (isJPG(img.uri))
+						return PImage.decodeJPEGFromStream(bufferToStream(buf));
+					throw new Error(
+						`Unsupported data-URI image type for ${img.uri.slice(0, 32)}...`,
+					);
+				}
 				const fpath = path.resolve(baseDir, decodeURIComponent(img.uri));
 				if (isPNG(img.uri))
 					return PImage.decodePNGFromStream(fs.createReadStream(fpath));
@@ -163,6 +187,23 @@ async function loadGLTF(gltfPath) {
 					() => PImage.decodeJPEGFromStream(fs.createReadStream(fpath)),
 				);
 			}
+
+			if (typeof img.bufferView === "number") {
+				const bv = gltf.bufferViews[img.bufferView];
+				if (!bv) throw new Error(`Invalid image bufferView index ${img.bufferView}`);
+				const buffer = buffers[bv.buffer];
+				if (!buffer) throw new Error(`Missing buffer for image bufferView ${img.bufferView}`);
+				const byteOffset = bv.byteOffset || 0;
+				const byteLength = bv.byteLength;
+				if (typeof byteLength !== "number")
+					throw new Error(`bufferView ${img.bufferView} missing byteLength for image.`);
+				const slice = buffer.slice(byteOffset, byteOffset + byteLength);
+				return decodeImageFromBuffer(slice, img.mimeType);
+			}
+
+			throw new Error(
+				"images[*] entry missing uri or bufferView; unsupported in this lightweight loader.",
+			);
 		}),
 	);
 
@@ -230,7 +271,9 @@ async function loadGLTF(gltfPath) {
 
 		const out = new Float32Array(count * ncomp);
 		// If tightly packed, we can just create a typed view then map to float (handling normalization)
-		if (stride === comp.size * ncomp) {
+		const canUseTightView =
+			stride === comp.size * ncomp && src.byteOffset % comp.size === 0;
+		if (canUseTightView) {
 			const Typed = comp.array;
 			const tarr = new Typed(src.buffer, src.byteOffset, count * ncomp);
 			if (comp.name === "FLOAT" && !acc.normalized)
@@ -300,7 +343,9 @@ async function loadGLTF(gltfPath) {
 			bv.byteLength - (acc.byteOffset || 0),
 		);
 
-		if (stride === comp.size) {
+		const canUseTightView =
+			stride === comp.size && src.byteOffset % comp.size === 0;
+		if (canUseTightView) {
 			const Typed = comp.array;
 			const tarr = new Typed(src.buffer, src.byteOffset, count);
 			// normalize to Uint32 for simplicity
