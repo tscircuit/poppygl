@@ -1,11 +1,21 @@
 {
   "name": "poppygl",
-  "module": "lib/main.ts",
+  "main": "dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup-node ./lib/index.ts --format esm --dts",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "test": "bun test"
+  },
   "type": "module",
-  "private": true,
   "devDependencies": {
+    "@biomejs/biome": "^2.2.4",
     "@types/bun": "^1.2.23",
-    "looks-same": "^10.0.1"
+    "looks-same": "^10.0.1",
+    "tsup": "^8.5.0"
   },
   "peerDependencies": {
     "typescript": "^5"

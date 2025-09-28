@@ -1,15 +1,16 @@
 # poppygl
 
-To install dependencies:
+Render GLTF files to PNG images in completely native javascript without WebGL/OpenGL
 
-```bash
-bun install
+![example image](./tests/basics/__snapshots__/basics01.snap.png)
+
+```tsx
+import { renderGLTFToPNGBuffer } from "poppygl"
+
+const gltfPath = "./circuit.gltf" // path to your GLTF file
+
+const pngBuffer = await renderGLTFToPNGBuffer(gltfPath, {
+  width: 320,
+  height: 240,
+})
 ```
-
-To run:
-
-```bash
-bun run index.ts
-```
-
-This project was created using `bun init` in bun v1.2.22. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
