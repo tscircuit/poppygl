@@ -5,7 +5,7 @@ Render GLTF files to PNG images in completely native javascript without WebGL/Op
 ![example image](./tests/basics/__snapshots__/basics01.snap.png)
 
 ```tsx
-import { renderGLTFToPNGBuffer } from "poppygl"
+import { renderGLTFToPNGBuffer } from "poppygl/cli"
 
 const gltfPath = "./circuit.gltf" // path to your GLTF file
 
