@@ -53,7 +53,8 @@ function decodeBase64DataUri(uri: string): Uint8Array {
   if (!match) throw new Error(`Unsupported data URI: ${uri.slice(0, 40)}...`)
   const base64 = match[2]
   const atobFn = typeof globalThis.atob === "function" ? globalThis.atob : null
-  if (!atobFn) throw new Error("Base64 decoding unavailable in this environment")
+  if (!atobFn)
+    throw new Error("Base64 decoding unavailable in this environment")
   const binary = atobFn(base64)
   const bytes = new Uint8Array(binary.length)
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
@@ -125,7 +126,8 @@ async function loadGLTFResourcesFromUrl(
   const buffers: Uint8Array[] = await Promise.all(
     (gltf.buffers ?? []).map(async (buffer: any) => {
       if (buffer.uri) {
-        if (buffer.uri.startsWith("data:")) return decodeBase64DataUri(buffer.uri)
+        if (buffer.uri.startsWith("data:"))
+          return decodeBase64DataUri(buffer.uri)
         const resolved = new URL(buffer.uri, baseUrl).href
         return fetchAsUint8Array(resolved)
       }
@@ -150,7 +152,9 @@ async function loadGLTFResourcesFromUrl(
           throw new Error(`Invalid image bufferView index ${img.bufferView}`)
         const backing = buffers[bufferView.buffer]
         if (!backing)
-          throw new Error(`Missing buffer for image bufferView ${img.bufferView}`)
+          throw new Error(
+            `Missing buffer for image bufferView ${img.bufferView}`,
+          )
         const byteOffset = bufferView.byteOffset ?? 0
         const byteLength = bufferView.byteLength
         if (typeof byteLength !== "number")
@@ -198,31 +202,9 @@ function createQuadForBitmap(bitmap: BitmapLike): DrawCall {
     0,
   ])
 
-  const normals = new Float32Array([
-    0,
-    0,
-    1,
-    0,
-    0,
-    1,
-    0,
-    0,
-    1,
-    0,
-    0,
-    1,
-  ])
+  const normals = new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1])
 
-  const uvs = new Float32Array([
-    0,
-    1,
-    1,
-    1,
-    1,
-    0,
-    0,
-    0,
-  ])
+  const uvs = new Float32Array([0, 1, 1, 1, 1, 0, 0, 0])
 
   const indices = new Uint32Array([0, 1, 2, 0, 2, 3])
   const model = mat4.create()
@@ -369,7 +351,11 @@ export const PoppyGlViewer: React.FC<PoppyGlViewerProps> = ({
 
     ctx.clearRect(0, 0, resolvedWidth, resolvedHeight)
 
-    const camPos = computeOrbitCamera(sceneState.center, sceneState.radius, orbit)
+    const camPos = computeOrbitCamera(
+      sceneState.center,
+      sceneState.radius,
+      orbit,
+    )
     const renderResult = renderDrawCalls(sceneState.drawCalls, {
       width: resolvedWidth,
       height: resolvedHeight,
@@ -446,12 +432,15 @@ export const PoppyGlViewer: React.FC<PoppyGlViewerProps> = ({
     setDragging(false)
   }
 
-  const containerStyle = useMemo<CSSProperties>(() => ({
-    position: "relative",
-    width: style?.width ?? resolvedWidth,
-    height: style?.height ?? resolvedHeight,
-    ...style,
-  }), [resolvedWidth, resolvedHeight, style])
+  const containerStyle = useMemo<CSSProperties>(
+    () => ({
+      position: "relative",
+      width: style?.width ?? resolvedWidth,
+      height: style?.height ?? resolvedHeight,
+      ...style,
+    }),
+    [resolvedWidth, resolvedHeight, style],
+  )
 
   return (
     <div className={className} style={containerStyle}>
