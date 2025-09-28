@@ -1,6 +1,6 @@
 import { test, expect } from "bun:test";
 import { fileURLToPath } from "node:url";
-import { renderGLTFToPNGBuffer } from "../../lib/main.ts";
+import { renderGLTFToPNGBuffer } from "../../lib/index.ts";
 import "../fixtures/preload.ts";
 
 test("basics01", async () => {
