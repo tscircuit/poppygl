@@ -10,6 +10,8 @@
     "dist"
   ],
   "scripts": {
+    "start": "cosmos",
+    "build:site": "cosmos-export",
     "build": "tsup-node ./lib/index.ts --format esm",
     "format": "biome format --write .",
     "format:check": "biome format .",
@@ -20,7 +22,10 @@
     "@biomejs/biome": "^2.2.4",
     "@types/bun": "^1.2.23",
     "looks-same": "^10.0.1",
-    "tsup": "^8.5.0"
+    "react-cosmos": "^7.0.0",
+    "react-cosmos-plugin-vite": "^7.0.0",
+    "tsup": "^8.5.0",
+    "vite": "^7.1.7"
   },
   "peerDependencies": {
     "typescript": "^5"
