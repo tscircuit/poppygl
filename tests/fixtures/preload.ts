@@ -1,1 +1,1 @@
-import "./png-matcher";
+import "./png-matcher"

@@ -1,8 +1,8 @@
-export { renderGLTFToPNGBuffer } from "./renderGLTFToPNGBuffer";
-export { renderGLTFToPNGFile } from "./renderGLTFToPNGFile";
-export { runCLI } from "./runCLI";
-export { parseCliArgs } from "./parseCliArgs";
-export { parseVec3 } from "./parseVec3";
-export { loadGLTFWithResources } from "./loadGLTFWithResources";
-export { encodePNGToBuffer } from "./encodePNGToBuffer";
-export { pureImageFactory } from "./pureImageFactory";
+export { renderGLTFToPNGBuffer } from "./renderGLTFToPNGBuffer"
+export { renderGLTFToPNGFile } from "./renderGLTFToPNGFile"
+export { runCLI } from "./runCLI"
+export { parseCliArgs } from "./parseCliArgs"
+export { parseVec3 } from "./parseVec3"
+export { loadGLTFWithResources } from "./loadGLTFWithResources"
+export { encodePNGToBuffer } from "./encodePNGToBuffer"
+export { pureImageFactory } from "./pureImageFactory"

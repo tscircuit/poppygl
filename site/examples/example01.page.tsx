@@ -1,3 +1,3 @@
-import circuitGltf from "../../tests/basics/circuit.gltf";
+import circuitGltf from "../../tests/basics/circuit.gltf"
 
-export default () => <PoppyGlViewer gltfUrl={circuitGltf} />;
+export default () => <PoppyGlViewer gltfUrl={circuitGltf} />
