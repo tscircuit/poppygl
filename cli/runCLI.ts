@@ -18,7 +18,7 @@ export async function runCLI() {
     process.exit(1)
   }
 
-  const gltfPath = argv._[0]
+  const gltfPath = argv._[0]!
   const outPath = typeof argv.out === "string" ? argv.out : "out.png"
   const width = parseInt(
     typeof argv.w === "string" ? argv.w : `${DEFAULT_RENDER_OPTIONS.width}`,

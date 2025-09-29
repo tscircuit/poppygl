@@ -11,7 +11,8 @@ export type RenderGLTFToPNGBufferFromGLBBufferOptions = RenderOptionsInput
 function normalizeToArrayBuffer(source: ArrayBuffer | Uint8Array): ArrayBuffer {
   if (source instanceof ArrayBuffer) return source
   const { buffer, byteOffset, byteLength } = source
-  return buffer.slice(byteOffset, byteOffset + byteLength)
+  const viewBuffer = buffer as ArrayBuffer
+  return viewBuffer.slice(byteOffset, byteOffset + byteLength)
 }
 
 export async function renderGLTFToPNGBufferFromGLBBuffer(
@@ -49,7 +50,7 @@ export async function renderGLTFToPNGBufferFromGLBBuffer(
       throw new Error(`Invalid bufferView index ${bufferViewIndex}.`)
     }
     const bufferIndex = bufferView.buffer
-    const buffer = buffers[bufferIndex]
+    const buffer = buffers[bufferIndex]!
     if (!buffer) {
       throw new Error(
         `Missing buffer data for bufferView ${bufferViewIndex} (buffer ${bufferIndex}).`,

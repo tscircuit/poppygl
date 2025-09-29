@@ -6,7 +6,7 @@ export type ParsedArgs = {
 export function parseCliArgs(args: string[]): ParsedArgs {
   const out: ParsedArgs = { _: [] }
   for (let i = 0; i < args.length; i++) {
-    const tok = args[i]
+    const tok = args[i]!
     if (tok.startsWith("--")) {
       const key = tok.slice(2)
       const next = args[i + 1]

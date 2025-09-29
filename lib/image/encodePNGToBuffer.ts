@@ -1,5 +1,5 @@
 import { PassThrough } from "node:stream"
-import PImage from "pureimage"
+import * as PImage from "pureimage"
 import type { BitmapLike } from "./createUint8Bitmap"
 
 export async function encodePNGToBuffer(image: BitmapLike): Promise<Buffer> {

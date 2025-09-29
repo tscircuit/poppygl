@@ -75,23 +75,29 @@ export class SoftwareRenderer {
     const idx = (y * img.width + x) * 4
     const d = img.data
     return [
-      d[idx + 0] / 255,
-      d[idx + 1] / 255,
-      d[idx + 2] / 255,
-      d[idx + 3] / 255,
+      d[idx + 0]! / 255,
+      d[idx + 1]! / 255,
+      d[idx + 2]! / 255,
+      d[idx + 3]! / 255,
     ]
   }
 
   perspInterp(attrs: number[][], invWs: number[], lambdas: number[]) {
-    const denom =
-      lambdas[0] * invWs[0] + lambdas[1] * invWs[1] + lambdas[2] * invWs[2]
-    const n = attrs[0].length
+    const [lambda0, lambda1, lambda2] = lambdas as [
+      number,
+      number,
+      number,
+    ]
+    const [invW0, invW1, invW2] = invWs as [number, number, number]
+    const [attr0, attr1, attr2] = attrs as [number[], number[], number[]]
+    const denom = lambda0 * invW0 + lambda1 * invW1 + lambda2 * invW2
+    const n = attr0.length
     const out = new Array<number>(n).fill(0)
     for (let j = 0; j < n; j++) {
       out[j] =
-        (lambdas[0] * attrs[0][j] * invWs[0] +
-          lambdas[1] * attrs[1][j] * invWs[1] +
-          lambdas[2] * attrs[2][j] * invWs[2]) /
+        (lambda0 * attr0[j]! * invW0 +
+          lambda1 * attr1[j]! * invW1 +
+          lambda2 * attr2[j]! * invW2) /
         denom
     }
     return out
@@ -136,9 +142,9 @@ export class SoftwareRenderer {
 
     for (let i = 0; i < vertexCount; i++) {
       const p = vec4.fromValues(
-        positions[i * 3 + 0],
-        positions[i * 3 + 1],
-        positions[i * 3 + 2],
+        positions[i * 3 + 0]!,
+        positions[i * 3 + 1]!,
+        positions[i * 3 + 2]!,
         1,
       )
       const c = vec4.create()
@@ -156,26 +162,32 @@ export class SoftwareRenderer {
       vNDCz[i] = ndcZ
 
       const n = vec3.fromValues(
-        useNormals[i * 3 + 0],
-        useNormals[i * 3 + 1],
-        useNormals[i * 3 + 2],
+        useNormals[i * 3 + 0]!,
+        useNormals[i * 3 + 1]!,
+        useNormals[i * 3 + 2]!,
       )
       const nw = vec3.create()
       vec3.transformMat3(nw, n, normalMat)
-      vWorldN[i] = [nw[0], nw[1], nw[2]]
+      vWorldN[i] = [nw[0]!, nw[1]!, nw[2]!]
     }
 
     for (let i = 0; i < idx.length; i += 3) {
-      const i0 = idx[i + 0] >>> 0
-      const i1 = idx[i + 1] >>> 0
-      const i2 = idx[i + 2] >>> 0
+      const i0 = idx[i + 0]!
+      const i1 = idx[i + 1]!
+      const i2 = idx[i + 2]!
 
-      if (!(isFinite(vInvW[i0]) && isFinite(vInvW[i1]) && isFinite(vInvW[i2])))
+      if (
+        !(
+          isFinite(vInvW[i0]!) &&
+          isFinite(vInvW[i1]!) &&
+          isFinite(vInvW[i2]!)
+        )
+      )
         continue
 
-      const v0 = vScreen[i0]
-      const v1 = vScreen[i1]
-      const v2 = vScreen[i2]
+      const v0 = vScreen[i0]!
+      const v1 = vScreen[i1]!
+      const v2 = vScreen[i2]!
 
       const area = edge(v0, v1, v2)
       if (area === 0) continue
@@ -186,20 +198,32 @@ export class SoftwareRenderer {
       let minY = Math.max(0, Math.min(v0[1], v1[1], v2[1]) | 0)
       let maxY = Math.min(this.height - 1, Math.max(v0[1], v1[1], v2[1]) | 0)
 
-      const invW = [vInvW[i0], vInvW[i1], vInvW[i2]]
-      const ndcZ = [vNDCz[i0], vNDCz[i1], vNDCz[i2]]
-      const nws = [vWorldN[i0], vWorldN[i1], vWorldN[i2]]
-      const uv = uvs
+      const invW: [number, number, number] = [
+        vInvW[i0]!,
+        vInvW[i1]!,
+        vInvW[i2]!,
+      ]
+      const ndcZ: [number, number, number] = [
+        vNDCz[i0]!,
+        vNDCz[i1]!,
+        vNDCz[i2]!,
+      ]
+      const nws: [number, number, number][] = [
+        vWorldN[i0]!,
+        vWorldN[i1]!,
+        vWorldN[i2]!,
+      ]
+      const uv: [number, number][] | null = uvs
         ? [
-            [uvs[i0 * 2 + 0], uvs[i0 * 2 + 1]],
-            [uvs[i1 * 2 + 0], uvs[i1 * 2 + 1]],
-            [uvs[i2 * 2 + 0], uvs[i2 * 2 + 1]],
+            [uvs[i0 * 2 + 0]!, uvs[i0 * 2 + 1]!],
+            [uvs[i1 * 2 + 0]!, uvs[i1 * 2 + 1]!],
+            [uvs[i2 * 2 + 0]!, uvs[i2 * 2 + 1]!],
           ]
         : null
 
       for (let y = minY; y <= maxY; y++) {
         for (let x = minX; x <= maxX; x++) {
-          const p = [x + 0.5, y + 0.5]
+          const p: [number, number] = [x + 0.5, y + 0.5]
           const w0 = edge(v1, v2, p)
           const w1 = edge(v2, v0, p)
           const w2 = edge(v0, v1, p)
@@ -213,28 +237,37 @@ export class SoftwareRenderer {
           const zndc = l0 * ndcZ[0] + l1 * ndcZ[1] + l2 * ndcZ[2]
           const z01 = zndc * 0.5 + 0.5
           const di = y * this.width + x
-          if (z01 >= this.depth[di]) continue
-          this.depth[di] = z01
+          const depth = this.depth
+          if (z01 >= depth[di]!) continue
+          depth[di] = z01
 
           let baseColor: MutableRGBA = [
-            material.baseColorFactor[0],
-            material.baseColorFactor[1],
-            material.baseColorFactor[2],
-            material.baseColorFactor[3],
+            material.baseColorFactor[0]!,
+            material.baseColorFactor[1]!,
+            material.baseColorFactor[2]!,
+            material.baseColorFactor[3]!,
           ]
           if (uv && material.baseColorTexture) {
             const uvp = this.perspInterp(uv, invW, [l0, l1, l2])
             const texel = this.sampleTextureNearest(
               material.baseColorTexture,
-              uvp[0],
-              uvp[1],
+              uvp[0]!,
+              uvp[1]!,
             )
             baseColor = mulColor(baseColor, texel)
           }
 
-          const np = this.perspInterp(nws, invW, [l0, l1, l2])
-          const nlen = Math.hypot(np[0], np[1], np[2]) || 1
-          const nrm = [np[0] / nlen, np[1] / nlen, np[2] / nlen]
+          const [np0, np1, np2] = this.perspInterp(nws, invW, [l0, l1, l2]) as [
+            number,
+            number,
+            number,
+          ]
+          const nlen = Math.hypot(np0, np1, np2) || 1
+          const nrm: [number, number, number] = [
+            np0 / nlen,
+            np1 / nlen,
+            np2 / nlen,
+          ]
 
           const lightDir = light.dir ?? DEFAULT_LIGHT_DIR
           const ambient = clamp(

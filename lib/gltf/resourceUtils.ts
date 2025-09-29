@@ -1,11 +1,11 @@
 import { PassThrough } from "node:stream"
-import PImage from "pureimage"
+import * as PImage from "pureimage"
 import type { BitmapLike } from "../image/createUint8Bitmap"
 
 export function bufferFromDataURI(uri: string): Uint8Array {
   const match = uri.match(/^data:.*?;base64,(.*)$/)
   if (!match) throw new Error(`Unsupported data URI: ${uri.slice(0, 64)}...`)
-  return Buffer.from(match[1], "base64")
+  return Buffer.from(match[1]!, "base64")
 }
 
 export function isPNG(filenameOrUri: string) {

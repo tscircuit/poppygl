@@ -8,14 +8,23 @@ export function computeWorldAABB(drawCalls: DrawCall[]) {
   for (const dc of drawCalls) {
     const { positions, model } = dc
     for (let i = 0; i < positions.length; i += 3) {
-      vec4.set(tmp, positions[i], positions[i + 1], positions[i + 2], 1)
+      vec4.set(
+        tmp,
+        positions[i]!,
+        positions[i + 1]!,
+        positions[i + 2]!,
+        1,
+      )
       vec4.transformMat4(tmp, tmp, model)
-      min[0] = Math.min(min[0], tmp[0])
-      min[1] = Math.min(min[1], tmp[1])
-      min[2] = Math.min(min[2], tmp[2])
-      max[0] = Math.max(max[0], tmp[0])
-      max[1] = Math.max(max[1], tmp[1])
-      max[2] = Math.max(max[2], tmp[2])
+      const x = tmp[0]!
+      const y = tmp[1]!
+      const z = tmp[2]!
+      min[0] = Math.min(min[0]!, x)
+      min[1] = Math.min(min[1]!, y)
+      min[2] = Math.min(min[2]!, z)
+      max[0] = Math.max(max[0]!, x)
+      max[1] = Math.max(max[1]!, y)
+      max[2] = Math.max(max[2]!, z)
     }
   }
   return { min, max }

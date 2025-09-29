@@ -51,7 +51,7 @@ function clamp(value: number, min: number, max: number) {
 function decodeBase64DataUri(uri: string): Uint8Array {
   const match = uri.match(/^data:(.*?);base64,(.*)$/)
   if (!match) throw new Error(`Unsupported data URI: ${uri.slice(0, 40)}...`)
-  const base64 = match[2]
+  const base64 = match[2]!
   const atobFn = typeof globalThis.atob === "function" ? globalThis.atob : null
   if (!atobFn)
     throw new Error("Base64 decoding unavailable in this environment")
@@ -66,7 +66,7 @@ async function loadImageElement(src: string): Promise<HTMLImageElement> {
     const img = new Image()
     if (!src.startsWith("data:")) img.crossOrigin = "anonymous"
     img.onload = () => resolve(img)
-    img.onerror = (err) => reject(err)
+    img.onerror = (event) => reject(event)
     img.src = src
   })
 }
@@ -98,7 +98,12 @@ async function bitmapFromBinary(
   buffer: Uint8Array,
   mimeType?: string,
 ): Promise<BitmapLike> {
-  const blob = new Blob([buffer], { type: mimeType ?? "image/png" })
+  const source = buffer.buffer as ArrayBuffer
+  const slice = source.slice(
+    buffer.byteOffset,
+    buffer.byteOffset + buffer.byteLength,
+  )
+  const blob = new Blob([slice], { type: mimeType ?? "image/png" })
   const objectUrl = URL.createObjectURL(blob)
   try {
     return await bitmapFromUrl(objectUrl)
@@ -120,7 +125,7 @@ async function loadGLTFResourcesFromUrl(
   const gltfResponse = await fetch(gltfUrl)
   if (!gltfResponse.ok)
     throw new Error(`Failed to fetch GLTF: ${gltfResponse.status}`)
-  const gltf = await gltfResponse.json()
+  const gltf = (await gltfResponse.json()) as any
   const baseUrl = new URL(gltfUrl, window.location.href)
 
   const buffers: Uint8Array[] = await Promise.all(
@@ -150,6 +155,10 @@ async function loadGLTFResourcesFromUrl(
         const bufferView = gltf.bufferViews?.[img.bufferView]
         if (!bufferView)
           throw new Error(`Invalid image bufferView index ${img.bufferView}`)
+        if (typeof bufferView.buffer !== "number")
+          throw new Error(
+            `Image bufferView ${img.bufferView} missing buffer reference`,
+          )
         const backing = buffers[bufferView.buffer]
         if (!backing)
           throw new Error(
@@ -225,13 +234,13 @@ function createQuadForBitmap(bitmap: BitmapLike): DrawCall {
 function extractSceneBounds(drawCalls: DrawCall[]) {
   const { min, max } = computeWorldAABB(drawCalls)
   const center: [number, number, number] = [
-    0.5 * (min[0] + max[0]),
-    0.5 * (min[1] + max[1]),
-    0.5 * (min[2] + max[2]),
+    0.5 * (min[0]! + max[0]!),
+    0.5 * (min[1]! + max[1]!),
+    0.5 * (min[2]! + max[2]!),
   ]
-  const dx = max[0] - min[0]
-  const dy = max[1] - min[1]
-  const dz = max[2] - min[2]
+  const dx = max[0]! - min[0]!
+  const dy = max[1]! - min[1]!
+  const dz = max[2]! - min[2]!
   const radius = Math.max(Math.sqrt(dx * dx + dy * dy + dz * dz) * 0.5, 0.1)
   return { center, radius }
 }

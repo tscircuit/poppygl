@@ -72,8 +72,10 @@ function getBufferViewSlice(
   const bufferView = gltf.bufferViews?.[bufferViewIndex]
   if (!bufferView)
     throw new Error(`Invalid bufferView index ${bufferViewIndex}`)
+  if (typeof bufferView.buffer !== "number")
+    throw new Error(`bufferView ${bufferViewIndex} missing buffer reference`)
   const bufferIndex: number = bufferView.buffer
-  const buffer = buffers[bufferIndex]
+  const buffer = buffers[bufferIndex]!
   if (!buffer) throw new Error(`Missing buffer at index ${bufferIndex}`)
   const viewOffset = bufferView.byteOffset ?? 0
   const totalByteLength =
@@ -103,13 +105,18 @@ function readAccessorAsFloat32(
   const accessor = gltf.accessors?.[accessorIndex]
   if (!accessor) throw new Error(`Invalid accessor index ${accessorIndex}`)
   if (accessor.sparse) throw new Error("Sparse accessors are not supported.")
-  const compInfo = COMPONENT_INFO[accessor.componentType]
+  const compInfo =
+    COMPONENT_INFO[
+      accessor.componentType as keyof typeof COMPONENT_INFO
+    ]
   const numComponents = NUM_COMPONENTS[accessor.type as AccessorType]
   if (!compInfo || !numComponents)
     throw new Error(
       `Unsupported accessor componentType ${accessor.componentType}`,
     )
   const byteOffset = accessor.byteOffset ?? 0
+  if (typeof accessor.bufferView !== "number")
+    throw new Error(`Accessor ${accessorIndex} missing bufferView`)
   const {
     array: src,
     stride: bufferViewStride,
@@ -183,7 +190,10 @@ function readIndices(
   if (!accessor) throw new Error(`Invalid accessor index ${accessorIndex}`)
   if (accessor.type !== "SCALAR")
     throw new Error("Index accessor must be SCALAR")
-  const compInfo = COMPONENT_INFO[accessor.componentType]
+  const compInfo =
+    COMPONENT_INFO[
+      accessor.componentType as keyof typeof COMPONENT_INFO
+    ]
   if (!compInfo)
     throw new Error(
       `Unsupported index component type ${accessor.componentType}`,
@@ -196,6 +206,8 @@ function readIndices(
     throw new Error("Index componentType must be UNSIGNED_BYTE/SHORT/INT")
   }
   const byteOffset = accessor.byteOffset ?? 0
+  if (typeof accessor.bufferView !== "number")
+    throw new Error(`Index accessor ${accessorIndex} missing bufferView`)
   const {
     array: src,
     stride: bufferViewStride,
@@ -237,7 +249,7 @@ function readIndices(
 function nodeLocalMatrix(node: any) {
   if (node.matrix) {
     const m = mat4.create()
-    for (let i = 0; i < 16; i++) m[i] = node.matrix[i]
+    for (let i = 0; i < 16; i++) m[i] = node.matrix[i]!
     return m
   }
   const translation = node.translation || [0, 0, 0]
@@ -266,9 +278,11 @@ function getMaterial(
   ]
   let texImg: BitmapLike | null = null
   if (pbr.baseColorTexture && Number.isInteger(pbr.baseColorTexture.index)) {
-    const tex = textures[pbr.baseColorTexture.index]
+    const texIndex = pbr.baseColorTexture.index as number
+    const tex = textures[texIndex]
     if (tex && Number.isInteger(tex.source)) {
-      texImg = images[tex.source] || null
+      const imageIndex = tex.source as number
+      texImg = images[imageIndex] || null
     }
   }
   return { baseColorFactor: factor, baseColorTexture: texImg }
