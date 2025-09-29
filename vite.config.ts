@@ -1,15 +1,15 @@
-import { defineConfig } from 'vite';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { defineConfig } from "vite"
+import { dirname, resolve } from "node:path"
+import { fileURLToPath } from "node:url"
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 export default defineConfig({
   resolve: {
     alias: {
-      lib: resolve(__dirname, 'lib'),
+      lib: resolve(__dirname, "lib"),
     },
   },
-  assetsInclude: ['**/*.gltf'],
-});
+  assetsInclude: ["**/*.gltf"],
+})

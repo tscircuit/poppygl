@@ -15,9 +15,10 @@ export interface FetchLikeResponse {
   arrayBuffer(): Promise<ArrayBuffer>
 }
 
-export type FetchLike = (input: string, init?: Record<string, unknown>) => Promise<
-  FetchLikeResponse
->
+export type FetchLike = (
+  input: string,
+  init?: Record<string, unknown>,
+) => Promise<FetchLikeResponse>
 
 export interface LoadGLTFWithResourcesFromURLOptions {
   fetchImpl?: FetchLike
@@ -25,7 +26,8 @@ export interface LoadGLTFWithResourcesFromURLOptions {
 
 function ensureFetch(fetchImpl?: FetchLike): FetchLike {
   const impl = fetchImpl ?? (globalThis as { fetch?: FetchLike }).fetch
-  if (!impl) throw new Error("Global fetch API is not available; provide fetchImpl.")
+  if (!impl)
+    throw new Error("Global fetch API is not available; provide fetchImpl.")
   return impl
 }
 
@@ -48,16 +50,20 @@ export async function loadGLTFWithResourcesFromURL(
   const fetchImpl = ensureFetch(options.fetchImpl)
   const response = await fetchImpl(url)
   if (!response.ok)
-    throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`)
+    throw new Error(
+      `Failed to fetch ${url}: ${response.status} ${response.statusText}`,
+    )
 
   const resolvedURL = new URL(response.url || url)
   const baseURL = resolvedURL
   const sourceBuffer = await response.arrayBuffer()
-  const header = sourceBuffer.byteLength >= 4 ? new DataView(sourceBuffer, 0, 4) : null
+  const header =
+    sourceBuffer.byteLength >= 4 ? new DataView(sourceBuffer, 0, 4) : null
   const isGLB = header?.getUint32(0, true) === 0x46546c67
 
   let gltf: any
-  const totalBuffers = (): number => (Array.isArray(gltf?.buffers) ? gltf.buffers.length : 0)
+  const totalBuffers = (): number =>
+    Array.isArray(gltf?.buffers) ? gltf.buffers.length : 0
   let buffers: Uint8Array[] = []
 
   if (isGLB) {
@@ -87,7 +93,9 @@ export async function loadGLTFWithResourcesFromURL(
       buffers[index] = buf
       return buf
     }
-    throw new Error(`Buffer ${index} is missing a uri and no GLB chunk was provided.`)
+    throw new Error(
+      `Buffer ${index} is missing a uri and no GLB chunk was provided.`,
+    )
   }
 
   await Promise.all(
@@ -96,7 +104,9 @@ export async function loadGLTFWithResourcesFromURL(
     }),
   )
 
-  async function resolveImage(img: any): Promise<ReturnType<typeof decodeImageFromBuffer>> {
+  async function resolveImage(
+    img: any,
+  ): Promise<ReturnType<typeof decodeImageFromBuffer>> {
     if (img.uri) {
       if (img.uri.startsWith("data:")) {
         const buf = bufferFromDataURI(img.uri)
@@ -121,7 +131,10 @@ export async function loadGLTFWithResourcesFromURL(
       const bufferView = gltf.bufferViews?.[img.bufferView]
       if (!bufferView)
         throw new Error(`Invalid image bufferView index ${img.bufferView}`)
-      const buffer = await resolveBuffer(bufferView.buffer, gltf.buffers?.[bufferView.buffer])
+      const buffer = await resolveBuffer(
+        bufferView.buffer,
+        gltf.buffers?.[bufferView.buffer],
+      )
       if (!buffer)
         throw new Error(`Missing buffer for image bufferView ${img.bufferView}`)
       const byteOffset = bufferView.byteOffset ?? 0

@@ -8,13 +8,7 @@ export function computeWorldAABB(drawCalls: DrawCall[]) {
   for (const dc of drawCalls) {
     const { positions, model } = dc
     for (let i = 0; i < positions.length; i += 3) {
-      vec4.set(
-        tmp,
-        positions[i]!,
-        positions[i + 1]!,
-        positions[i + 2]!,
-        1,
-      )
+      vec4.set(tmp, positions[i]!, positions[i + 1]!, positions[i + 2]!, 1)
       vec4.transformMat4(tmp, tmp, model)
       const x = tmp[0]!
       const y = tmp[1]!

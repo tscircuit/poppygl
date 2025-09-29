@@ -83,11 +83,7 @@ export class SoftwareRenderer {
   }
 
   perspInterp(attrs: number[][], invWs: number[], lambdas: number[]) {
-    const [lambda0, lambda1, lambda2] = lambdas as [
-      number,
-      number,
-      number,
-    ]
+    const [lambda0, lambda1, lambda2] = lambdas as [number, number, number]
     const [invW0, invW1, invW2] = invWs as [number, number, number]
     const [attr0, attr1, attr2] = attrs as [number[], number[], number[]]
     const denom = lambda0 * invW0 + lambda1 * invW1 + lambda2 * invW2
@@ -177,11 +173,7 @@ export class SoftwareRenderer {
       const i2 = idx[i + 2]!
 
       if (
-        !(
-          isFinite(vInvW[i0]!) &&
-          isFinite(vInvW[i1]!) &&
-          isFinite(vInvW[i2]!)
-        )
+        !(isFinite(vInvW[i0]!) && isFinite(vInvW[i1]!) && isFinite(vInvW[i2]!))
       )
         continue
 

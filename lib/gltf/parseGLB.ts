@@ -27,7 +27,8 @@ export function parseGLB(arrayBuffer: ArrayBuffer): ParsedGLB {
     const chunkLength = view.getUint32(offset, true)
     const chunkType = view.getUint32(offset + 4, true)
     offset += 8
-    if (offset + chunkLength > length) throw new Error("Truncated GLB chunk data.")
+    if (offset + chunkLength > length)
+      throw new Error("Truncated GLB chunk data.")
 
     const chunkData = new Uint8Array(arrayBuffer, offset, chunkLength)
     offset += chunkLength

@@ -106,9 +106,7 @@ function readAccessorAsFloat32(
   if (!accessor) throw new Error(`Invalid accessor index ${accessorIndex}`)
   if (accessor.sparse) throw new Error("Sparse accessors are not supported.")
   const compInfo =
-    COMPONENT_INFO[
-      accessor.componentType as keyof typeof COMPONENT_INFO
-    ]
+    COMPONENT_INFO[accessor.componentType as keyof typeof COMPONENT_INFO]
   const numComponents = NUM_COMPONENTS[accessor.type as AccessorType]
   if (!compInfo || !numComponents)
     throw new Error(
@@ -191,9 +189,7 @@ function readIndices(
   if (accessor.type !== "SCALAR")
     throw new Error("Index accessor must be SCALAR")
   const compInfo =
-    COMPONENT_INFO[
-      accessor.componentType as keyof typeof COMPONENT_INFO
-    ]
+    COMPONENT_INFO[accessor.componentType as keyof typeof COMPONENT_INFO]
   if (!compInfo)
     throw new Error(
       `Unsupported index component type ${accessor.componentType}`,

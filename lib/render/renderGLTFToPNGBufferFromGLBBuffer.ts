@@ -39,7 +39,9 @@ export async function renderGLTFToPNGBufferFromGLBBuffer(
     }
 
     if (!binaryChunk) {
-      throw new Error(`GLB is missing the binary chunk required for buffer ${index}.`)
+      throw new Error(
+        `GLB is missing the binary chunk required for buffer ${index}.`,
+      )
     }
     buffers[index] = binaryChunk
   }
