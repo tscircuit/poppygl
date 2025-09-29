@@ -323,6 +323,11 @@ export function createSceneFromGLTF(
             primitive.indices != null
               ? readIndices(ctx, primitive.indices)
               : null
+
+          const colorAcc = primitive.attributes?.COLOR_0
+          const colors =
+            colorAcc != null ? readAccessorAsFloat32(ctx, colorAcc) : null
+
           const material = getMaterial(
             gltf,
             textures,
@@ -336,6 +341,7 @@ export function createSceneFromGLTF(
             indices,
             model: world,
             material,
+            colors,
           })
         }
       }

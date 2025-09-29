@@ -13,6 +13,7 @@ export interface DrawCall {
   indices: Uint32Array | null
   model: mat4
   material: Material
+  colors?: Float32Array | null
 }
 
 export interface GLTFResources {

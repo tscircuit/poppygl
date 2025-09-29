@@ -107,7 +107,7 @@ export class SoftwareRenderer {
     cullBackFaces = true,
     gammaOut = true,
   ) {
-    const { positions, normals, uvs, indices, model } = mesh
+    const { positions, normals, uvs, indices, model, colors } = mesh
 
     const view = camera.view
     const proj = camera.proj
@@ -135,6 +135,7 @@ export class SoftwareRenderer {
     const vInvW = new Float32Array(vertexCount)
     const vNDCz = new Float32Array(vertexCount)
     const vWorldN = new Array<[number, number, number]>(vertexCount)
+    const vColor = new Array<[number, number, number]>(vertexCount)
 
     for (let i = 0; i < vertexCount; i++) {
       const p = vec4.fromValues(
@@ -165,6 +166,12 @@ export class SoftwareRenderer {
       const nw = vec3.create()
       vec3.transformMat3(nw, n, normalMat)
       vWorldN[i] = [nw[0]!, nw[1]!, nw[2]!]
+
+      if (colors && colors.length >= (i + 1) * 3) {
+        vColor[i] = [colors[i * 3 + 0]!, colors[i * 3 + 1]!, colors[i * 3 + 2]!]
+      } else {
+        vColor[i] = [1, 1, 1]
+      }
     }
 
     for (let i = 0; i < idx.length; i += 3) {
@@ -213,6 +220,12 @@ export class SoftwareRenderer {
           ]
         : null
 
+      const cs: [number, number, number][] = [
+        vColor[i0]!,
+        vColor[i1]!,
+        vColor[i2]!,
+      ]
+
       for (let y = minY; y <= maxY; y++) {
         for (let x = minX; x <= maxX; x++) {
           const p: [number, number] = [x + 0.5, y + 0.5]
@@ -248,6 +261,18 @@ export class SoftwareRenderer {
             )
             baseColor = mulColor(baseColor, texel)
           }
+
+          const [cr, cg, cb] = this.perspInterp(cs, invW, [l0, l1, l2]) as [
+            number,
+            number,
+            number,
+          ]
+          baseColor = [
+            baseColor[0] * cr,
+            baseColor[1] * cg,
+            baseColor[2] * cb,
+            baseColor[3],
+          ]
 
           const [np0, np1, np2] = this.perspInterp(nws, invW, [l0, l1, l2]) as [
             number,
