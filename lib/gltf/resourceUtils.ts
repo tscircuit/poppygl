@@ -1,4 +1,4 @@
-import { PassThrough } from "node:stream"
+import { PassThrough } from "readable-stream"
 import * as PImage from "pureimage"
 import type { BitmapLike } from "../image/createUint8Bitmap"
 
@@ -52,5 +52,7 @@ export async function decodeImageFromBuffer(
     return PImage.decodePNGFromStream(bufferToStream(buf))
   if (type === "image/jpeg" || type === "image/jpg")
     return PImage.decodeJPEGFromStream(bufferToStream(buf))
-  throw new Error(`Unsupported embedded image mimeType: ${mimeType ?? "unknown"}`)
+  throw new Error(
+    `Unsupported embedded image mimeType: ${mimeType ?? "unknown"}`,
+  )
 }

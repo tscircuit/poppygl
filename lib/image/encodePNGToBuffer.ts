@@ -1,4 +1,4 @@
-import { PassThrough } from "node:stream"
+import { PassThrough } from "readable-stream"
 import * as PImage from "pureimage"
 import type { BitmapLike } from "./createUint8Bitmap"
 
