@@ -26,6 +26,25 @@ await writeFile("DamagedHelmet.png", png)
 
 > The fetch helper relies on the global `fetch` API (present in Node 18+ and modern browsers). Pass a custom `fetchImpl` if you need different transport or caching behaviour.
 
+## Render from an in-memory GLB buffer
+
+Already have the `.glb` bytes (for example, uploaded by a user or read from disk)? Send the buffer straight to `renderGLTFToPNGBufferFromGLBBuffer` and receive the PNG output.
+
+```ts
+import { readFile } from "node:fs/promises"
+import { renderGLTFToPNGBufferFromGLBBuffer } from "poppygl"
+
+const glb = await readFile("DamagedHelmet.glb")
+const png = await renderGLTFToPNGBufferFromGLBBuffer(glb, {
+  width: 1024,
+  height: 768,
+})
+
+// write or return the PNG buffer
+```
+
+> This helper expects every referenced buffer/image to be embedded in the GLB (the usual single-file package). If the asset links out to external resources, load it with `renderGLTFToPNGBufferFromURL` instead so poppygl can fetch the extras.
+
 ## Render options
 
 `renderGLTFToPNGBufferFromURL` accepts the same render options as the lower-level APIs:

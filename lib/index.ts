@@ -54,6 +54,10 @@ export {
   renderGLTFToPNGBufferFromURL,
   type RenderGLTFToPNGBufferFromURLOptions,
 } from "./render/renderGLTFToPNGBufferFromURL"
+export {
+  renderGLTFToPNGBufferFromGLBBuffer,
+  type RenderGLTFToPNGBufferFromGLBBufferOptions,
+} from "./render/renderGLTFToPNGBufferFromGLBBuffer"
 
 export function renderSceneFromGLTF(
   scene: import("./gltf/types").GLTFScene,
