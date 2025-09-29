@@ -1,8 +1,11 @@
-import { createSceneFromGLTF, renderSceneFromGLTF } from "../lib/index"
+import {
+  createSceneFromGLTF,
+  encodePNGToBuffer,
+  pureImageFactory,
+  renderSceneFromGLTF,
+} from "../lib/index"
 import type { RenderOptionsInput } from "../lib/render/getDefaultRenderOptions"
-import { encodePNGToBuffer } from "./encodePNGToBuffer"
 import { loadGLTFWithResources } from "./loadGLTFWithResources"
-import { pureImageFactory } from "./pureImageFactory"
 
 export async function renderGLTFToPNGBuffer(
   gltfPath: string,

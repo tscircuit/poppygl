@@ -13,6 +13,17 @@ export type {
   GLTFResources,
   GLTFScene,
 } from "./gltf/types"
+export {
+  loadGLTFWithResourcesFromURL,
+  type LoadGLTFWithResourcesFromURLOptions,
+  type FetchLike,
+} from "./gltf/loadGLTFWithResourcesFromURL"
+export {
+  bufferFromDataURI,
+  decodeImageFromBuffer,
+  isJPG,
+  isPNG,
+} from "./gltf/resourceUtils"
 
 export { buildCamera } from "./camera/buildCamera"
 export type { Camera } from "./camera/buildCamera"
@@ -27,6 +38,8 @@ export type {
   MutableRGBA,
   RGBA,
 } from "./image/createUint8Bitmap"
+export { pureImageFactory } from "./image/pureImageFactory"
+export { encodePNGToBuffer } from "./image/encodePNGToBuffer"
 
 export {
   DEFAULT_LIGHT_DIR,
@@ -37,6 +50,10 @@ export type {
   RenderOptions,
   RenderOptionsInput,
 } from "./render/getDefaultRenderOptions"
+export {
+  renderGLTFToPNGBufferFromURL,
+  type RenderGLTFToPNGBufferFromURLOptions,
+} from "./render/renderGLTFToPNGBufferFromURL"
 
 export function renderSceneFromGLTF(
   scene: import("./gltf/types").GLTFScene,
