@@ -107,7 +107,7 @@ export class SoftwareRenderer {
     cullBackFaces = true,
     gammaOut = true,
   ) {
-    const { positions, normals, uvs, indices, model, colors} = mesh
+    const { positions, normals, uvs, indices, model, colors } = mesh
 
     const view = camera.view
     const proj = camera.proj
@@ -168,11 +168,7 @@ export class SoftwareRenderer {
       vWorldN[i] = [nw[0]!, nw[1]!, nw[2]!]
 
       if (colors && colors.length >= (i + 1) * 3) {
-        vColor[i] = [
-          colors[i * 3 + 0]!,
-          colors[i * 3 + 1]!,
-          colors[i * 3 + 2]!,
-        ]
+        vColor[i] = [colors[i * 3 + 0]!, colors[i * 3 + 1]!, colors[i * 3 + 2]!]
       } else {
         vColor[i] = [1, 1, 1]
       }
