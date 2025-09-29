@@ -5,7 +5,7 @@ import type { BitmapLike } from "./createUint8Bitmap"
 export async function encodePNGToBuffer(image: BitmapLike): Promise<Buffer> {
   const passThrough = new PassThrough()
   const chunks: Buffer[] = []
-  passThrough.on("data", (chunk) => {
+  passThrough.on("data", (chunk: any) => {
     chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
   })
   const resultPromise = new Promise<Buffer>((resolve, reject) => {

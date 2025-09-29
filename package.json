@@ -12,7 +12,7 @@
   "scripts": {
     "start": "cosmos",
     "build:site": "cosmos-export",
-    "build": "tsup-node ./lib/index.ts --format esm",
+    "build": "tsup-node ./lib/index.ts --format esm --dts",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "test": "bun test"
@@ -21,6 +21,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.2.4",
     "@types/bun": "^1.2.23",
+    "@types/readable-stream": "^4.0.21",
     "looks-same": "^10.0.1",
     "react": "^19.1.1",
     "react-cosmos": "^7.0.0",
