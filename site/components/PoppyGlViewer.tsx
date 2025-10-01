@@ -410,7 +410,7 @@ export const PoppyGlViewer: React.FC<PoppyGlViewerProps> = ({
     const deltaY = event.clientY - state.startY
     const ROTATE_SPEED = 0.005
     setOrbit(() => {
-      const newTheta = state.startOrbit.theta - deltaX * ROTATE_SPEED
+      const newTheta = state.startOrbit.theta + deltaX * ROTATE_SPEED
       const newPhi = clamp(
         state.startOrbit.phi - deltaY * ROTATE_SPEED,
         0.05,
