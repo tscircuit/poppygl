@@ -15,8 +15,8 @@ import {
 import type { GLTFResources } from "../../lib"
 import { mat4 } from "gl-matrix"
 
-const DEFAULT_WIDTH = 480
-const DEFAULT_HEIGHT = 360
+const DEFAULT_WIDTH = 640
+const DEFAULT_HEIGHT = 480
 const DEFAULT_ORBIT = {
   theta: Math.PI * 0.35,
   phi: Math.PI * 0.35,
