@@ -10,6 +10,7 @@ export interface RenderOptions {
   lightDir: readonly [number, number, number]
   camPos?: readonly [number, number, number] | null
   lookAt?: readonly [number, number, number] | null
+  backgroundColor?: readonly [number, number, number] | null
 }
 
 export type RenderOptionsInput = Partial<RenderOptions>
@@ -24,6 +25,7 @@ export const DEFAULT_RENDER_OPTIONS: RenderOptions = {
   lightDir: DEFAULT_LIGHT_DIR,
   camPos: null,
   lookAt: null,
+  backgroundColor: null,
 }
 
 export function getDefaultRenderOptions(): RenderOptions {
