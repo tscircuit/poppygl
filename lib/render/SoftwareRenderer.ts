@@ -36,7 +36,6 @@ export class SoftwareRenderer {
     this.height = height
     this.bitmap = imageFactory(width, height)
     this.depth = new Float32Array(width * height)
-    this.clear([0, 0, 0, 255])
   }
 
   get buffer() {

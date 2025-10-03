@@ -36,6 +36,20 @@ export function renderDrawCalls(
     imageFactory,
   )
 
+  // Clear with background color (transparent by default)
+  if (options.backgroundColor) {
+    const [r, g, b] = options.backgroundColor
+    renderer.clear([
+      Math.round(r * 255),
+      Math.round(g * 255),
+      Math.round(b * 255),
+      255,
+    ])
+  } else {
+    // Transparent background
+    renderer.clear([0, 0, 0, 0])
+  }
+
   for (const dc of drawCalls) {
     renderer.drawMesh(
       dc,
