@@ -63,6 +63,128 @@ export class SoftwareRenderer {
     this.buffer[idx + 3] = a
   }
 
+  drawLines(mesh: DrawCall, camera: Camera, gammaOut = true) {
+    const { positions, indices, model, material } = mesh
+    if (!indices) return
+
+    const view = camera.view
+    const proj = camera.proj
+    const mvp = mat4.create()
+    mat4.multiply(mvp, proj, mat4.multiply(mat4.create(), view, model))
+
+    const vertexCount = (positions.length / 3) | 0
+    const vScreen = new Array<[number, number]>(vertexCount)
+    const vInvW = new Float32Array(vertexCount)
+    const vNDCz = new Float32Array(vertexCount)
+
+    for (let i = 0; i < vertexCount; i++) {
+      const p = vec4.fromValues(
+        positions[i * 3 + 0]!,
+        positions[i * 3 + 1]!,
+        positions[i * 3 + 2]!,
+        1,
+      )
+      const c = vec4.create()
+      vec4.transformMat4(c, p, mvp)
+      const invW = 1 / c[3]
+      vInvW[i] = invW
+
+      if (!isFinite(invW)) {
+        vScreen[i] = [NaN, NaN]
+        vNDCz[i] = NaN
+        continue
+      }
+
+      const ndcX = c[0] * invW
+      const ndcY = c[1] * invW
+      const ndcZ = c[2] * invW
+
+      const sx = (ndcX * 0.5 + 0.5) * (this.width - 1)
+      const sy = (1 - (ndcY * 0.5 + 0.5)) * (this.height - 1)
+
+      vScreen[i] = [sx, sy]
+      vNDCz[i] = ndcZ
+    }
+
+    let [r, g, b, a] = material.baseColorFactor
+    if (gammaOut) {
+      r = srgbEncodeLinear01(clamp(r, 0, 1))
+      g = srgbEncodeLinear01(clamp(g, 0, 1))
+      b = srgbEncodeLinear01(clamp(b, 0, 1))
+    } else {
+      r = clamp(r, 0, 1)
+      g = clamp(g, 0, 1)
+      b = clamp(b, 0, 1)
+    }
+
+    const r255 = (r * 255) | 0
+    const g255 = (g * 255) | 0
+    const b255 = (b * 255) | 0
+    const a255 = (clamp(a, 0, 1) * 255) | 0
+
+    for (let i = 0; i < indices.length; i += 2) {
+      const i0 = indices[i + 0]!
+      const i1 = indices[i + 1]!
+
+      const v0s = vScreen[i0]!
+      const v1s = vScreen[i1]!
+
+      const z0_ndc = vNDCz[i0]!
+      const z1_ndc = vNDCz[i1]!
+
+      if (isNaN(v0s[0]) || isNaN(v1s[0])) continue
+
+      const z0_01 = z0_ndc * 0.5 + 0.5
+      const z1_01 = z1_ndc * 0.5 + 0.5
+
+      // very basic clipping
+      if ((z0_01 < 0 && z1_01 < 0) || (z0_01 > 1 && z1_01 > 1)) continue
+
+      // DDA line drawing
+      const x0 = Math.round(v0s[0])
+      const y0 = Math.round(v0s[1])
+      const x1 = Math.round(v1s[0])
+      const y1 = Math.round(v1s[1])
+
+      const dx = x1 - x0
+      const dy = y1 - y0
+      const steps = Math.max(Math.abs(dx), Math.abs(dy))
+
+      if (steps === 0) continue
+
+      const xinc = dx / steps
+      const yinc = dy / steps
+      const zinc = (z1_01 - z0_01) / steps
+
+      let x = x0
+      let y = y0
+      let z = z0_01
+
+      for (let k = 0; k <= steps; k++) {
+        const xi = Math.round(x)
+        const yi = Math.round(y)
+
+        if (
+          xi >= 0 &&
+          xi < this.width &&
+          yi >= 0 &&
+          yi < this.height &&
+          z >= 0 &&
+          z <= 1
+        ) {
+          const di = yi * this.width + xi
+          if (z < this.depth[di]!) {
+            this.depth[di] = z
+            this.setPixel(xi, yi, r255, g255, b255, a255)
+          }
+        }
+        x += xinc
+        y += yinc
+        z += zinc
+      }
+    }
+  }
+
   sampleTextureNearest(
     img: BitmapLike | null,
     u: number,

@@ -1,3 +1,5 @@
+import type { GridOptions } from "../gltf/types"
+
 export const DEFAULT_LIGHT_DIR = [-0.4, -0.9, -0.2] as const
 
 export interface RenderOptions {
@@ -11,6 +13,7 @@ export interface RenderOptions {
   camPos?: readonly [number, number, number] | null
   lookAt?: readonly [number, number, number] | null
   backgroundColor?: readonly [number, number, number] | null
+  grid?: boolean | GridOptions
 }
 
 export type RenderOptionsInput = Partial<RenderOptions>
@@ -26,6 +29,7 @@ export const DEFAULT_RENDER_OPTIONS: RenderOptions = {
   camPos: null,
   lookAt: null,
   backgroundColor: null,
+  grid: false,
 }
 
 export function getDefaultRenderOptions(): RenderOptions {

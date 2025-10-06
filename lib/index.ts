@@ -4,6 +4,7 @@ export { renderDrawCalls } from "./render/renderDrawCalls"
 export { resolveRenderOptions } from "./render/resolveRenderOptions"
 export type { RenderResult } from "./render/renderDrawCalls"
 
+export { createGrid } from "./gltf/createGrid"
 export { createSceneFromGLTF } from "./gltf/createSceneFromGLTF"
 export { computeSmoothNormals } from "./gltf/computeSmoothNormals"
 export { computeWorldAABB } from "./gltf/computeWorldAABB"
@@ -12,6 +13,7 @@ export type {
   Material,
   GLTFResources,
   GLTFScene,
+  GridOptions,
 } from "./gltf/types"
 export {
   loadGLTFWithResourcesFromURL,

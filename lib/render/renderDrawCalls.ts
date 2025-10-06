@@ -1,5 +1,7 @@
 import { buildCamera, type Camera } from "../camera/buildCamera"
-import type { DrawCall } from "../gltf/types"
+import { computeWorldAABB } from "../gltf/computeWorldAABB"
+import { createGrid } from "../gltf/createGrid"
+import type { DrawCall, GridOptions } from "../gltf/types"
 import type { BitmapLike, ImageFactory } from "../image/createUint8Bitmap"
 import { createUint8Bitmap } from "../image/createUint8Bitmap"
 import {
@@ -50,15 +52,53 @@ export function renderDrawCalls(
     renderer.clear([0, 0, 0, 0])
   }
 
-  for (const dc of drawCalls) {
-    renderer.drawMesh(
-      dc,
-      camera,
-      { dir: options.lightDir, ambient: options.ambient },
-      dc.material,
-      options.cull,
-      options.gamma,
-    )
+  const allDrawCalls = [...drawCalls]
+  if (options.grid) {
+    const userGridOptions =
+      typeof options.grid === "boolean" ? {} : options.grid
+
+    const aabb = computeWorldAABB(drawCalls)
+    const sizeX = aabb.max[0]! - aabb.min[0]!
+    const sizeZ = aabb.max[2]! - aabb.min[2]!
+    const maxSize = Math.max(sizeX, sizeZ)
+
+    const defaultSize = Math.ceil((maxSize * 1.2) / 2) * 2
+
+    const defaultOffset = {
+      x: (aabb.min[0]! + aabb.max[0]!) / 2,
+      y: aabb.min[1]!,
+      z: (aabb.min[2]! + aabb.max[2]!) / 2,
+    }
+
+    const defaultGridOptions = {
+      size: defaultSize > 0 ? defaultSize : 10,
+      offset: defaultOffset,
+    }
+
+    const finalGridOptions: GridOptions = {
+      ...defaultGridOptions,
+      ...userGridOptions,
+      offset: {
+        ...defaultGridOptions.offset,
+        ...userGridOptions.offset,
+      },
+    }
+    allDrawCalls.push(createGrid(finalGridOptions))
+  }
+
+  for (const dc of allDrawCalls) {
+    if (dc.mode === 1) {
+      renderer.drawLines(dc, camera, options.gamma)
+    } else {
+      renderer.drawMesh(
+        dc,
+        camera,
+        { dir: options.lightDir, ambient: options.ambient },
+        dc.material,
+        options.cull,
+        options.gamma,
+      )
+    }
   }
 
   return { bitmap: renderer.bitmap, camera, options }

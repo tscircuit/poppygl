@@ -21,5 +21,13 @@ export function computeWorldAABB(drawCalls: DrawCall[]) {
       max[2] = Math.max(max[2]!, z)
     }
   }
+
+  if (!isFinite(min[0]!)) {
+    return {
+      min: [-1, -1, -1],
+      max: [1, 1, 1],
+    }
+  }
+
   return { min, max }
 }
