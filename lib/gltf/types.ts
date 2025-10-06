@@ -14,6 +14,15 @@ export interface DrawCall {
   model: mat4
   material: Material
   colors?: Float32Array | null
+  mode?: number // glTF primitive mode: 4 = triangles, 1 = lines
+}
+
+export interface GridOptions {
+  size?: number
+  divisions?: number
+  color?: readonly [number, number, number]
+  y?: number
+  center?: readonly [number, number, number]
 }
 
 export interface GLTFResources {
