@@ -18,11 +18,10 @@ export interface DrawCall {
 }
 
 export interface GridOptions {
-  size?: number
+  size?: number | readonly [number, number, number]
   divisions?: number
   color?: readonly [number, number, number]
-  y?: number
-  center?: readonly [number, number, number]
+  offset?: Partial<{ x: number; y: number; z: number }>
 }
 
 export interface GLTFResources {

@@ -63,18 +63,25 @@ export function renderDrawCalls(
     const maxSize = Math.max(sizeX, sizeZ)
 
     const defaultSize = Math.ceil((maxSize * 1.2) / 2) * 2
-    const defaultY = aabb.min[1]!
-    const defaultCenter: [number, number, number] = [
-      (aabb.min[0]! + aabb.max[0]!) / 2,
-      0, // y-component is not used for grid center, y is separate
-      (aabb.min[2]! + aabb.max[2]!) / 2,
-    ]
+
+    const defaultOffset = {
+      x: (aabb.min[0]! + aabb.max[0]!) / 2,
+      y: aabb.min[1]!,
+      z: (aabb.min[2]! + aabb.max[2]!) / 2,
+    }
+
+    const defaultGridOptions = {
+      size: defaultSize > 0 ? defaultSize : 10,
+      offset: defaultOffset,
+    }
 
     const finalGridOptions: GridOptions = {
-      size: defaultSize > 0 ? defaultSize : 10,
-      y: defaultY,
-      center: defaultCenter,
+      ...defaultGridOptions,
       ...userGridOptions,
+      offset: {
+        ...defaultGridOptions.offset,
+        ...userGridOptions.offset,
+      },
     }
     allDrawCalls.push(createGrid(finalGridOptions))
   }

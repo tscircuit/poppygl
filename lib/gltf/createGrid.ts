@@ -3,34 +3,38 @@ import type { DrawCall, GridOptions } from "./types"
 
 export function createGrid(options: GridOptions = {}): DrawCall {
   const size = options.size ?? 10
+  const sizeX = typeof size === "number" ? size : size[0]!
+  const sizeZ = typeof size === "number" ? size : size[2]!
   const divisions = options.divisions ?? 10
   const color = options.color ?? [0.5, 0.5, 0.5]
-  const y = options.y ?? 0
-  const center = options.center ?? [0, 0, 0]
+  const offset = { x: 0, y: 0, z: 0, ...options.offset }
 
   const positions: number[] = []
   const indices: number[] = []
   let vertexIndex = 0
 
-  const halfSize = size / 2
-  const step = size / divisions
+  const halfSizeX = sizeX / 2
+  const halfSizeZ = sizeZ / 2
+  const stepX = sizeX / divisions
+  const stepZ = sizeZ / divisions
 
   for (let i = 0; i <= divisions; i++) {
-    const p = -halfSize + i * step
+    const pX = -halfSizeX + i * stepX
+    const pZ = -halfSizeZ + i * stepZ
 
     // Lines along Z axis
-    positions.push(p, 0, -halfSize)
-    positions.push(p, 0, halfSize)
+    positions.push(pX, 0, -halfSizeZ)
+    positions.push(pX, 0, halfSizeZ)
     indices.push(vertexIndex++, vertexIndex++)
 
     // Lines along X axis
-    positions.push(-halfSize, 0, p)
-    positions.push(halfSize, 0, p)
+    positions.push(-halfSizeX, 0, pZ)
+    positions.push(halfSizeX, 0, pZ)
     indices.push(vertexIndex++, vertexIndex++)
   }
 
   const model = mat4.create()
-  mat4.fromTranslation(model, [center[0], y, center[2]])
+  mat4.fromTranslation(model, [offset.x, offset.y, offset.z])
 
   return {
     positions: new Float32Array(positions),
