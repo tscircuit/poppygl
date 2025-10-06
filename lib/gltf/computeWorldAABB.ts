@@ -22,7 +22,7 @@ export function computeWorldAABB(drawCalls: DrawCall[]) {
     }
   }
 
-  if (!isFinite(min[0])) {
+  if (!isFinite(min[0]!)) {
     return {
       min: [-1, -1, -1],
       max: [1, 1, 1],
