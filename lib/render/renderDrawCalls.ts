@@ -1,22 +1,3 @@
-import { buildCamera, type Camera } from "../camera/buildCamera"
-import { computeWorldAABB } from "../gltf/computeWorldAABB"
-import { createGrid } from "../gltf/createGrid"
-import type { DrawCall, GridOptions } from "../gltf/types"
-import type { BitmapLike, ImageFactory } from "../image/createUint8Bitmap"
-import { createUint8Bitmap } from "../image/createUint8Bitmap"
-import {
-  type RenderOptions,
-  type RenderOptionsInput,
-} from "./getDefaultRenderOptions"
-import { SoftwareRenderer } from "./SoftwareRenderer"
-import { resolveRenderOptions } from "./resolveRenderOptions"
-
-export interface RenderResult {
-  bitmap: BitmapLike
-  camera: Camera
-  options: RenderOptions
-}
-
 import { vec3 } from "gl-matrix"
 import { buildCamera, type Camera } from "../camera/buildCamera"
 import { computeWorldAABB } from "../gltf/computeWorldAABB"
@@ -136,14 +117,14 @@ export function renderDrawCalls(
     const aabbA = computeWorldAABB([a])
     const aabbB = computeWorldAABB([b])
     const centerA = vec3.fromValues(
-      (aabbA.min[0] + aabbA.max[0]) / 2,
-      (aabbA.min[1] + aabbA.max[1]) / 2,
-      (aabbA.min[2] + aabbA.max[2]) / 2,
+      (aabbA.min![0]! + aabbA.max![0]!) / 2,
+      (aabbA.min![1]! + aabbA.max![1]!) / 2,
+      (aabbA.min![2]! + aabbA.max![2]!) / 2,
     )
     const centerB = vec3.fromValues(
-      (aabbB.min[0] + aabbB.max[0]) / 2,
-      (aabbB.min[1] + aabbB.max[1]) / 2,
-      (aabbB.min[2] + aabbB.max[2]) / 2,
+      (aabbB.min![0]! + aabbB.max![0]!) / 2,
+      (aabbB.min![1]! + aabbB.max![1]!) / 2,
+      (aabbB.min![2]! + aabbB.max![2]!) / 2,
     )
     const distA = vec3.dist(centerA, camera.position)
     const distB = vec3.dist(centerB, camera.position)

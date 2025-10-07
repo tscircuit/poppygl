@@ -6,6 +6,7 @@ import { toRad } from "../utils/toRad"
 export interface Camera {
   view: mat4
   proj: mat4
+  position: readonly [number, number, number]
 }
 
 export function buildCamera(
@@ -62,5 +63,5 @@ export function buildCamera(
   const view = mat4.create()
   mat4.lookAt(view, eye, center, up)
 
-  return { view, proj }
+  return { view, proj, position: [eye[0], eye[1], eye[2]] as const }
 }

@@ -1,9 +1,19 @@
-import type { mat4 } from "gl-matrix"
+import type { mat4, vec3 } from "gl-matrix"
 import type { BitmapLike } from "../image/createUint8Bitmap"
 
 export interface Material {
   baseColorFactor: [number, number, number, number]
   baseColorTexture: BitmapLike | null
+  emissiveFactor?: vec3
+  normalTexture?: {
+    index: number
+  }
+  occlusionTexture?: {
+    index: number
+  }
+  doubleSided?: boolean
+  alphaMode?: "OPAQUE" | "MASK" | "BLEND"
+  alphaCutoff?: number
 }
 
 export interface DrawCall {
