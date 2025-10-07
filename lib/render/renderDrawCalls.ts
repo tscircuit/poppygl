@@ -86,20 +86,39 @@ export function renderDrawCalls(
     allDrawCalls.push(createGrid(finalGridOptions))
   }
 
-  for (const dc of allDrawCalls) {
-    if (dc.mode === 1) {
-      renderer.drawLines(dc, camera, options.gamma)
-    } else {
-      renderer.drawMesh(
-        dc,
-        camera,
-        { dir: options.lightDir, ambient: options.ambient },
-        dc.material,
-        options.cull,
-        options.gamma,
-      )
+  // Split draw calls by transparency mode for correct rendering order
+  const opaqueDraws = allDrawCalls.filter(
+    (dc) => (dc.material.alphaMode ?? "OPAQUE") === "OPAQUE",
+  )
+  const maskDraws = allDrawCalls.filter(
+    (dc) => (dc.material.alphaMode ?? "OPAQUE") === "MASK",
+  )
+  const blendDraws = allDrawCalls.filter(
+    (dc) => (dc.material.alphaMode ?? "OPAQUE") === "BLEND",
+  )
+
+  // Helper to render groups
+  const renderGroup = (dcs: DrawCall[]) => {
+    for (const dc of dcs) {
+      if (dc.mode === 1) {
+        renderer.drawLines(dc, camera, options.gamma)
+      } else {
+        renderer.drawMesh(
+          dc,
+          camera,
+          { dir: options.lightDir, ambient: options.ambient },
+          dc.material,
+          options.cull,
+          options.gamma,
+        )
+      }
     }
   }
+
+  // Opaque first, then masked, then blended (for correct depth sorting)
+  renderGroup(opaqueDraws)
+  renderGroup(maskDraws)
+  renderGroup(blendDraws)
 
   return { bitmap: renderer.bitmap, camera, options }
 }

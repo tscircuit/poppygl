@@ -281,7 +281,19 @@ function getMaterial(
       texImg = images[imageIndex] || null
     }
   }
-  return { baseColorFactor: factor, baseColorTexture: texImg }
+  const alphaMode = (
+    typeof material.alphaMode === "string" ? material.alphaMode : "OPAQUE"
+  ) as "OPAQUE" | "MASK" | "BLEND"
+
+  const alphaCutoff =
+    typeof material.alphaCutoff === "number" ? material.alphaCutoff : 0.5
+
+  return {
+    baseColorFactor: factor,
+    baseColorTexture: texImg,
+    alphaMode,
+    alphaCutoff,
+  }
 }
 
 export function createSceneFromGLTF(
