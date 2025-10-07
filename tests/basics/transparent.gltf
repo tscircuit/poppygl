@@ -1,0 +1,136 @@
+{
+  "asset": {
+    "version": "2.0",
+    "generator": "Manual"
+  },
+  "scene": 0,
+  "scenes": [
+    {
+      "nodes": [0, 1, 2]
+    }
+  ],
+  "nodes": [
+    {
+      "mesh": 0,
+      "translation": [-2, 0, 0]
+    },
+    {
+      "mesh": 1,
+      "translation": [0, 0, 0]
+    },
+    {
+      "mesh": 2,
+      "translation": [2, 0, 0]
+    }
+  ],
+  "meshes": [
+    {
+      "name": "OpaqueCube",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1
+          },
+          "indices": 2,
+          "material": 0
+        }
+      ]
+    },
+    {
+      "name": "MaskedCube",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1
+          },
+          "indices": 2,
+          "material": 1
+        }
+      ]
+    },
+    {
+      "name": "BlendCube",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1
+          },
+          "indices": 2,
+          "material": 2
+        }
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "name": "OpaqueMaterial",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [1.0, 0.0, 0.0, 1.0]
+      },
+      "alphaMode": "OPAQUE"
+    },
+    {
+      "name": "MaskedMaterial",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [0.0, 1.0, 0.0, 0.6]
+      },
+      "alphaMode": "MASK",
+      "alphaCutoff": 0.5
+    },
+    {
+      "name": "BlendMaterial",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [0.0, 0.0, 1.0, 0.5]
+      },
+      "alphaMode": "BLEND"
+    }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "count": 24,
+      "type": "VEC3",
+      "max": [1.0, 1.0, 1.0],
+      "min": [-1.0, -1.0, -1.0]
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 24,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5123,
+      "count": 36,
+      "type": "SCALAR"
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteOffset": 0,
+      "byteLength": 288
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 288,
+      "byteLength": 288
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 576,
+      "byteLength": 72
+    }
+  ],
+  "buffers": [
+    {
+      "uri": "transparent.bin",
+      "byteLength": 648
+    }
+  ]
+}
