@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url"
 import { renderGLTFToPNGBuffer } from "../../cli/renderGLTFToPNGBuffer.ts"
 import "../fixtures/preload.ts"
 
-test("basics01", async () => {
+test("basics02", async () => {
   const gltfPath = fileURLToPath(new URL("./soic8.gltf", import.meta.url))
   const pngBuffer = await renderGLTFToPNGBuffer(gltfPath, {
     width: 320,
