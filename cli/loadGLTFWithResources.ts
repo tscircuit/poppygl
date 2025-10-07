@@ -18,14 +18,16 @@ export async function loadGLTFWithResources(gltfPath: string): Promise<{
 
   const buffers = await Promise.all(
     (gltf.buffers || []).map(async (b: any) => {
+      let buffer: Buffer
       if (b.uri && b.uri.startsWith("data:")) {
-        return bufferFromDataURI(b.uri)
-      }
-      if (b.uri) {
+        buffer = bufferFromDataURI(b.uri)
+      } else if (b.uri) {
         const resolved = path.resolve(baseDir, decodeURIComponent(b.uri))
-        return fs.promises.readFile(resolved)
+        buffer = await fs.promises.readFile(resolved)
+      } else {
+        throw new Error("Buffer without uri not supported in this loader.")
       }
-      throw new Error("Buffer without uri not supported in this loader.")
+      return new Uint8Array(buffer)
     }),
   )
 

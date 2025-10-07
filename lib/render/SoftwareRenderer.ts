@@ -57,10 +57,56 @@ export class SoftwareRenderer {
   setPixel(x: number, y: number, r: number, g: number, b: number, a: number) {
     if (x < 0 || y < 0 || x >= this.width || y >= this.height) return
     const idx = (y * this.width + x) * 4
-    this.buffer[idx + 0] = r
-    this.buffer[idx + 1] = g
-    this.buffer[idx + 2] = b
-    this.buffer[idx + 3] = a
+
+    // if fully opaque, just write it and return
+    if (a === 255) {
+      this.buffer[idx + 0] = r
+      this.buffer[idx + 1] = g
+      this.buffer[idx + 2] = b
+      this.buffer[idx + 3] = a
+      return
+    }
+
+    // if fully transparent, do nothing
+    if (a === 0) {
+      return
+    }
+
+    const [r0, g0, b0, a0] = this.getPixel(x, y)
+
+    const a_new_01 = a / 255
+    const a_old_01 = a0 / 255
+
+    const a_out_01 = a_new_01 + a_old_01 * (1 - a_new_01)
+
+    if (a_out_01 === 0) {
+      this.buffer[idx + 0] = 0
+      this.buffer[idx + 1] = 0
+      this.buffer[idx + 2] = 0
+      this.buffer[idx + 3] = 0
+      return
+    }
+
+    const r_out = (r * a_new_01 + r0 * a_old_01 * (1 - a_new_01)) / a_out_01
+    const g_out = (g * a_new_01 + g0 * a_old_01 * (1 - a_new_01)) / a_out_01
+    const b_out = (b * a_new_01 + b0 * a_old_01 * (1 - a_new_01)) / a_out_01
+
+    this.buffer[idx + 0] = r_out
+    this.buffer[idx + 1] = g_out
+    this.buffer[idx + 2] = b_out
+    this.buffer[idx + 3] = a_out_01 * 255
+  }
+
+  getPixel(x: number, y: number) {
+    if (x < 0 || y < 0 || x >= this.width || y >= this.height)
+      return [0, 0, 0, 0] as const
+    const idx = (y * this.width + x) * 4
+    return [
+      this.buffer[idx + 0]!,
+      this.buffer[idx + 1]!,
+      this.buffer[idx + 2]!,
+      this.buffer[idx + 3]!,
+    ] as const
   }
 
   drawLines(mesh: DrawCall, camera: Camera, gammaOut = true) {
@@ -365,7 +411,6 @@ export class SoftwareRenderer {
           const di = y * this.width + x
           const depth = this.depth
           if (z01 >= depth[di]!) continue
-          depth[di] = z01
 
           let baseColor: MutableRGBA = [
             material.baseColorFactor[0]!,
@@ -427,6 +472,22 @@ export class SoftwareRenderer {
           let g = baseColor[1] * lit
           let b = baseColor[2] * lit
           let a = baseColor[3]
+
+          if (material.alphaMode === "MASK") {
+            if (a < (material.alphaCutoff ?? 0.5)) {
+              continue
+            }
+            a = 1
+          } else if (material.alphaMode === "OPAQUE") {
+            a = 1
+          }
+
+          if (a < 1) {
+            // For transparent objects, we don't write to the depth buffer
+            // to allow objects behind them to be rendered.
+          } else {
+            depth[di] = z01
+          }
 
           if (gammaOut) {
             r = srgbEncodeLinear01(clamp(r, 0, 1))
