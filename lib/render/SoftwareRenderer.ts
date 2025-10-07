@@ -335,10 +335,10 @@ export class SoftwareRenderer {
       ]
       const uv: [number, number][] | null = uvs
         ? [
-            [uvs[i0 * 2 + 0]!, uvs[i0 * 2 + 1]!],
-            [uvs[i1 * 2 + 0]!, uvs[i1 * 2 + 1]!],
-            [uvs[i2 * 2 + 0]!, uvs[i2 * 2 + 1]!],
-          ]
+          [uvs[i0 * 2 + 0]!, uvs[i0 * 2 + 1]!],
+          [uvs[i1 * 2 + 0]!, uvs[i1 * 2 + 1]!],
+          [uvs[i2 * 2 + 0]!, uvs[i2 * 2 + 1]!],
+        ]
         : null
 
       const cs: [number, number, number][] = [
@@ -428,6 +428,20 @@ export class SoftwareRenderer {
           let b = baseColor[2] * lit
           let a = baseColor[3]
 
+          // Handle material transparency
+          const alphaMode = material.alphaMode ?? "OPAQUE"
+          const alphaCutoff = material.alphaCutoff ?? 0.5
+
+          // Skip masked fragments below cutoff
+          if (alphaMode === "MASK" && a < alphaCutoff) continue
+
+          // For BLEND, do not write to depth yet — blend with existing pixel
+          const shouldWriteDepth = alphaMode !== "BLEND"
+          if (shouldWriteDepth) {
+            depth[di] = z01
+          }
+
+          // Convert to sRGB if needed
           if (gammaOut) {
             r = srgbEncodeLinear01(clamp(r, 0, 1))
             g = srgbEncodeLinear01(clamp(g, 0, 1))
@@ -437,14 +451,33 @@ export class SoftwareRenderer {
             g = clamp(g, 0, 1)
             b = clamp(b, 0, 1)
           }
+          const dstIdx = (y * this.width + x) * 4
+          const dstR = (this.buffer[dstIdx + 0] ?? 0) / 255
+          const dstG = (this.buffer[dstIdx + 1] ?? 0) / 255
+          const dstB = (this.buffer[dstIdx + 2] ?? 0) / 255
+          const dstA = (this.buffer[dstIdx + 3] ?? 0) / 255
+
+          let outR = r;
+          let outG = g;
+          let outB = b;
+          let outA = a;
+
+          if (alphaMode === "BLEND" && a < 1.0) {
+            // Simple "over" alpha blending
+            const oneMinusA = 1 - a
+            outR = r * a + dstR * oneMinusA
+            outG = g * a + dstG * oneMinusA
+            outB = b * a + dstB * oneMinusA
+            outA = a + dstA * oneMinusA
+          }
 
           this.setPixel(
             x,
             y,
-            (r * 255) | 0,
-            (g * 255) | 0,
-            (b * 255) | 0,
-            (clamp(a, 0, 1) * 255) | 0,
+            (clamp(outR, 0, 1) * 255) | 0,
+            (clamp(outG, 0, 1) * 255) | 0,
+            (clamp(outB, 0, 1) * 255) | 0,
+            (clamp(outA, 0, 1) * 255) | 0,
           )
         }
       }

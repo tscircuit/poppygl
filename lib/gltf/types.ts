@@ -3,7 +3,9 @@ import type { BitmapLike } from "../image/createUint8Bitmap"
 
 export interface Material {
   baseColorFactor: [number, number, number, number]
-  baseColorTexture: BitmapLike | null
+  baseColorTexture: BitmapLike | null,
+  alphaMode?: "OPAQUE" | "MASK" | "BLEND",
+  alphaCutoff?: number
 }
 
 export interface DrawCall {
