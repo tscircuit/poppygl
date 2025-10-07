@@ -335,10 +335,10 @@ export class SoftwareRenderer {
       ]
       const uv: [number, number][] | null = uvs
         ? [
-          [uvs[i0 * 2 + 0]!, uvs[i0 * 2 + 1]!],
-          [uvs[i1 * 2 + 0]!, uvs[i1 * 2 + 1]!],
-          [uvs[i2 * 2 + 0]!, uvs[i2 * 2 + 1]!],
-        ]
+            [uvs[i0 * 2 + 0]!, uvs[i0 * 2 + 1]!],
+            [uvs[i1 * 2 + 0]!, uvs[i1 * 2 + 1]!],
+            [uvs[i2 * 2 + 0]!, uvs[i2 * 2 + 1]!],
+          ]
         : null
 
       const cs: [number, number, number][] = [
@@ -457,10 +457,10 @@ export class SoftwareRenderer {
           const dstB = (this.buffer[dstIdx + 2] ?? 0) / 255
           const dstA = (this.buffer[dstIdx + 3] ?? 0) / 255
 
-          let outR = r;
-          let outG = g;
-          let outB = b;
-          let outA = a;
+          let outR = r
+          let outG = g
+          let outB = b
+          let outA = a
 
           if (alphaMode === "BLEND" && a < 1.0) {
             // Simple "over" alpha blending

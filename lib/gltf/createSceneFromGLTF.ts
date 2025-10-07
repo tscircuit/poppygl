@@ -281,10 +281,9 @@ function getMaterial(
       texImg = images[imageIndex] || null
     }
   }
-  const alphaMode =
-    (typeof material.alphaMode === "string"
-      ? material.alphaMode
-      : "OPAQUE") as "OPAQUE" | "MASK" | "BLEND"
+  const alphaMode = (
+    typeof material.alphaMode === "string" ? material.alphaMode : "OPAQUE"
+  ) as "OPAQUE" | "MASK" | "BLEND"
 
   const alphaCutoff =
     typeof material.alphaCutoff === "number" ? material.alphaCutoff : 0.5
