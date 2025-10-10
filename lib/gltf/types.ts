@@ -24,6 +24,13 @@ export interface GridOptions {
   divisions?: number
   color?: readonly [number, number, number]
   offset?: Partial<{ x: number; y: number; z: number }>
+  infiniteGrid?: boolean
+  cellSize?: number
+  sectionSize?: number
+  fadeDistance?: number
+  fadeStrength?: number
+  gridColor?: readonly [number, number, number]
+  sectionColor?: readonly [number, number, number]
 }
 
 export interface GLTFResources {

@@ -5,6 +5,7 @@ export { resolveRenderOptions } from "./render/resolveRenderOptions"
 export type { RenderResult } from "./render/renderDrawCalls"
 
 export { createGrid } from "./gltf/createGrid"
+export { createInfiniteGrid } from "./gltf/createInfiniteGrid"
 export { createSceneFromGLTF } from "./gltf/createSceneFromGLTF"
 export { computeSmoothNormals } from "./gltf/computeSmoothNormals"
 export { computeWorldAABB } from "./gltf/computeWorldAABB"
