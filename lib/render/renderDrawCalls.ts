@@ -62,7 +62,11 @@ export function renderDrawCalls(
     const sizeZ = aabb.max[2]! - aabb.min[2]!
     const maxSize = Math.max(sizeX, sizeZ)
 
-    const defaultSize = Math.ceil((maxSize * 1.2) / 2) * 2
+    // For infinite grids, use a larger multiplier to show more fade-out
+    const isInfinite =
+      typeof userGridOptions === "object" && userGridOptions.infinite
+    const sizeMultiplier = isInfinite ? 2.5 : 1.2
+    const defaultSize = Math.ceil((maxSize * sizeMultiplier) / 2) * 2
 
     const defaultOffset = {
       x: (aabb.min[0]! + aabb.max[0]!) / 2,

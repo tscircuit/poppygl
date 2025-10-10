@@ -2,14 +2,27 @@ import { mat4 } from "gl-matrix"
 import type { DrawCall, GridOptions } from "./types"
 
 export function createGrid(options: GridOptions = {}): DrawCall {
-  const size = options.size ?? 10
+  const infinite = options.infinite ?? false
+  const baseSize = options.size ?? 10
+
+  // For infinite grids, expand the grid size to create the infinite appearance
+  // Only apply multiplier if size wasn't explicitly provided by user
+  const size =
+    infinite && !options.size
+      ? typeof baseSize === "number"
+        ? baseSize * 2.5
+        : baseSize
+      : baseSize
+
   const sizeX = typeof size === "number" ? size : size[0]!
   const sizeZ = typeof size === "number" ? size : size[2]!
   const divisions = options.divisions ?? 10
   const color = options.color ?? [0.5, 0.5, 0.5]
   const offset = { x: 0, y: 0, z: 0, ...options.offset }
-  const infinite = options.infinite ?? false
-  const fadeDistance = options.fadeDistance ?? sizeX / 2
+
+  // Default fade distance: use the max dimension for smooth fade
+  const maxDimension = Math.max(sizeX, sizeZ)
+  const fadeDistance = options.fadeDistance ?? maxDimension * 0.8
 
   const positions: number[] = []
   const indices: number[] = []
@@ -25,11 +38,13 @@ export function createGrid(options: GridOptions = {}): DrawCall {
   const computeFadeAlpha = (x: number, z: number): number => {
     if (!infinite) return 1.0
     const distance = Math.sqrt(x * x + z * z)
-    const fadeStart = fadeDistance * 0.5
+    const fadeStart = fadeDistance * 0.5 // Start fading at 50% of fade distance
     const fadeEnd = fadeDistance
     if (distance < fadeStart) return 1.0
     if (distance > fadeEnd) return 0.0
-    return 1.0 - (distance - fadeStart) / (fadeEnd - fadeStart)
+    // Smooth fade using smoothstep curve for nice visual falloff
+    const t = (distance - fadeStart) / (fadeEnd - fadeStart)
+    return 1.0 - t * t * (3.0 - 2.0 * t)
   }
 
   for (let i = 0; i <= divisions; i++) {

@@ -210,7 +210,7 @@ export class SoftwareRenderer {
 
           if (isBlendMode && a255 < 255) {
             // Alpha blending
-            if (a255 > 0) {
+            if (a255 > 0 && z < this.depth[di]!) {
               const idx = di * 4
               const srcA = a255 / 255
               const dstR = this.buffer[idx + 0]!
