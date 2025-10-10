@@ -64,7 +64,7 @@ export class SoftwareRenderer {
   }
 
   drawLines(mesh: DrawCall, camera: Camera, gammaOut = true) {
-    const { positions, indices, model, material } = mesh
+    const { positions, indices, model, material, colors } = mesh
     if (!indices) return
 
     const view = camera.view
@@ -76,6 +76,7 @@ export class SoftwareRenderer {
     const vScreen = new Array<[number, number]>(vertexCount)
     const vInvW = new Float32Array(vertexCount)
     const vNDCz = new Float32Array(vertexCount)
+    const vColor = new Array<[number, number, number, number]>(vertexCount)
 
     for (let i = 0; i < vertexCount; i++) {
       const p = vec4.fromValues(
@@ -104,23 +105,23 @@ export class SoftwareRenderer {
 
       vScreen[i] = [sx, sy]
       vNDCz[i] = ndcZ
+
+      // Store per-vertex colors if available
+      if (colors && colors.length >= (i + 1) * 4) {
+        vColor[i] = [
+          colors[i * 4 + 0]!,
+          colors[i * 4 + 1]!,
+          colors[i * 4 + 2]!,
+          colors[i * 4 + 3]!,
+        ]
+      } else {
+        vColor[i] = [1, 1, 1, 1]
+      }
     }
 
-    let [r, g, b, a] = material.baseColorFactor
-    if (gammaOut) {
-      r = srgbEncodeLinear01(clamp(r, 0, 1))
-      g = srgbEncodeLinear01(clamp(g, 0, 1))
-      b = srgbEncodeLinear01(clamp(b, 0, 1))
-    } else {
-      r = clamp(r, 0, 1)
-      g = clamp(g, 0, 1)
-      b = clamp(b, 0, 1)
-    }
-
-    const r255 = (r * 255) | 0
-    const g255 = (g * 255) | 0
-    const b255 = (b * 255) | 0
-    const a255 = (clamp(a, 0, 1) * 255) | 0
+    const [baseR, baseG, baseB, baseA] = material.baseColorFactor
+    const hasVertexColors = colors && colors.length > 0
+    const isBlendMode = material.alphaMode === "BLEND"
 
     for (let i = 0; i < indices.length; i += 2) {
       const i0 = indices[i + 0]!
@@ -156,9 +157,21 @@ export class SoftwareRenderer {
       const yinc = dy / steps
       const zinc = (z1_01 - z0_01) / steps
 
+      // Color interpolation
+      const c0 = vColor[i0]!
+      const c1 = vColor[i1]!
+      const rInc = hasVertexColors ? (c1[0] - c0[0]) / steps : 0
+      const gInc = hasVertexColors ? (c1[1] - c0[1]) / steps : 0
+      const bInc = hasVertexColors ? (c1[2] - c0[2]) / steps : 0
+      const aInc = hasVertexColors ? (c1[3] - c0[3]) / steps : 0
+
       let x = x0
       let y = y0
       let z = z0_01
+      let vR = hasVertexColors ? c0[0] : 1
+      let vG = hasVertexColors ? c0[1] : 1
+      let vB = hasVertexColors ? c0[2] : 1
+      let vA = hasVertexColors ? c0[3] : 1
 
       for (let k = 0; k <= steps; k++) {
         const xi = Math.round(x)
@@ -173,7 +186,51 @@ export class SoftwareRenderer {
           z <= 1
         ) {
           const di = yi * this.width + xi
-          if (z < this.depth[di]!) {
+
+          // Combine vertex color with material color
+          let finalR = vR * baseR
+          let finalG = vG * baseG
+          let finalB = vB * baseB
+          let finalA = vA * baseA
+
+          if (gammaOut) {
+            finalR = srgbEncodeLinear01(clamp(finalR, 0, 1))
+            finalG = srgbEncodeLinear01(clamp(finalG, 0, 1))
+            finalB = srgbEncodeLinear01(clamp(finalB, 0, 1))
+          } else {
+            finalR = clamp(finalR, 0, 1)
+            finalG = clamp(finalG, 0, 1)
+            finalB = clamp(finalB, 0, 1)
+          }
+
+          const r255 = (finalR * 255) | 0
+          const g255 = (finalG * 255) | 0
+          const b255 = (finalB * 255) | 0
+          const a255 = (clamp(finalA, 0, 1) * 255) | 0
+
+          if (isBlendMode && a255 < 255) {
+            // Alpha blending
+            if (a255 > 0) {
+              const idx = di * 4
+              const srcA = a255 / 255
+              const dstR = this.buffer[idx + 0]!
+              const dstG = this.buffer[idx + 1]!
+              const dstB = this.buffer[idx + 2]!
+              const dstA = this.buffer[idx + 3]! / 255
+
+              const outA = srcA + dstA * (1 - srcA)
+              if (outA > 0) {
+                const outR = (r255 * srcA + dstR * dstA * (1 - srcA)) / outA
+                const outG = (g255 * srcA + dstG * dstA * (1 - srcA)) / outA
+                const outB = (b255 * srcA + dstB * dstA * (1 - srcA)) / outA
+
+                this.buffer[idx + 0] = Math.round(outR)
+                this.buffer[idx + 1] = Math.round(outG)
+                this.buffer[idx + 2] = Math.round(outB)
+                this.buffer[idx + 3] = Math.round(outA * 255)
+              }
+            }
+          } else if (z < this.depth[di]!) {
             this.depth[di] = z
             this.setPixel(xi, yi, r255, g255, b255, a255)
           }
@@ -181,6 +238,10 @@ export class SoftwareRenderer {
         x += xinc
         y += yinc
         z += zinc
+        vR += rInc
+        vG += gInc
+        vB += bInc
+        vA += aInc
       }
     }
   }
