@@ -33,6 +33,7 @@ export type { Camera } from "./camera/buildCamera"
 
 export { SoftwareRenderer } from "./render/SoftwareRenderer"
 export type { LightSettings } from "./render/SoftwareRenderer"
+export { drawInfiniteGrid } from "./render/drawInfiniteGrid"
 
 export { createUint8Bitmap } from "./image/createUint8Bitmap"
 export type {

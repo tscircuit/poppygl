@@ -10,6 +10,7 @@ import {
 } from "./getDefaultRenderOptions"
 import { SoftwareRenderer } from "./SoftwareRenderer"
 import { resolveRenderOptions } from "./resolveRenderOptions"
+import { drawInfiniteGrid } from "./drawInfiniteGrid"
 
 export interface RenderResult {
   bitmap: BitmapLike
@@ -125,7 +126,7 @@ export function renderDrawCalls(
 
   // Render infinite grid first (as background)
   if (infiniteGridOptions) {
-    renderer.drawInfiniteGrid({
+    drawInfiniteGrid(renderer, {
       camera,
       cell_size: infiniteGridOptions.cellSize,
       section_size: infiniteGridOptions.sectionSize,
