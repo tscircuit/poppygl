@@ -10,6 +10,7 @@ import {
 } from "./getDefaultRenderOptions"
 import { SoftwareRenderer } from "./SoftwareRenderer"
 import { resolveRenderOptions } from "./resolveRenderOptions"
+import { drawInfiniteGrid } from "./drawInfiniteGrid"
 
 export interface RenderResult {
   bitmap: BitmapLike
@@ -53,37 +54,45 @@ export function renderDrawCalls(
   }
 
   const allDrawCalls = [...drawCalls]
+  let infiniteGridOptions: GridOptions | null = null
+
   if (options.grid) {
     const userGridOptions =
       typeof options.grid === "boolean" ? {} : options.grid
 
-    const aabb = computeWorldAABB(drawCalls)
-    const sizeX = aabb.max[0]! - aabb.min[0]!
-    const sizeZ = aabb.max[2]! - aabb.min[2]!
-    const maxSize = Math.max(sizeX, sizeZ)
+    // Check if we should use infinite grid
+    if (userGridOptions.infiniteGrid) {
+      infiniteGridOptions = userGridOptions
+    } else {
+      // Use regular grid
+      const aabb = computeWorldAABB(drawCalls)
+      const sizeX = aabb.max[0]! - aabb.min[0]!
+      const sizeZ = aabb.max[2]! - aabb.min[2]!
+      const maxSize = Math.max(sizeX, sizeZ)
 
-    const defaultSize = Math.ceil((maxSize * 1.2) / 2) * 2
+      const defaultSize = Math.ceil((maxSize * 1.2) / 2) * 2
 
-    const defaultOffset = {
-      x: (aabb.min[0]! + aabb.max[0]!) / 2,
-      y: aabb.min[1]!,
-      z: (aabb.min[2]! + aabb.max[2]!) / 2,
+      const defaultOffset = {
+        x: (aabb.min[0]! + aabb.max[0]!) / 2,
+        y: aabb.min[1]!,
+        z: (aabb.min[2]! + aabb.max[2]!) / 2,
+      }
+
+      const defaultGridOptions = {
+        size: defaultSize > 0 ? defaultSize : 10,
+        offset: defaultOffset,
+      }
+
+      const finalGridOptions: GridOptions = {
+        ...defaultGridOptions,
+        ...userGridOptions,
+        offset: {
+          ...defaultGridOptions.offset,
+          ...userGridOptions.offset,
+        },
+      }
+      allDrawCalls.push(createGrid(finalGridOptions))
     }
-
-    const defaultGridOptions = {
-      size: defaultSize > 0 ? defaultSize : 10,
-      offset: defaultOffset,
-    }
-
-    const finalGridOptions: GridOptions = {
-      ...defaultGridOptions,
-      ...userGridOptions,
-      offset: {
-        ...defaultGridOptions.offset,
-        ...userGridOptions.offset,
-      },
-    }
-    allDrawCalls.push(createGrid(finalGridOptions))
   }
 
   // Split draw calls by transparency mode for correct rendering order
@@ -113,6 +122,20 @@ export function renderDrawCalls(
         )
       }
     }
+  }
+
+  // Render infinite grid first (as background)
+  if (infiniteGridOptions) {
+    drawInfiniteGrid(renderer, {
+      camera,
+      cell_size: infiniteGridOptions.cellSize,
+      section_size: infiniteGridOptions.sectionSize,
+      fade_distance: infiniteGridOptions.fadeDistance,
+      fade_strength: infiniteGridOptions.fadeStrength,
+      grid_color: infiniteGridOptions.gridColor,
+      section_color: infiniteGridOptions.sectionColor,
+      gamma_out: options.gamma,
+    })
   }
 
   // Opaque first, then masked, then blended (for correct depth sorting)
