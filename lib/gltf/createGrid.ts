@@ -1,6 +1,26 @@
 import { mat4 } from "gl-matrix"
 import type { DrawCall, GridOptions } from "./types"
 
+interface FadeAlphaOptions {
+  x: number
+  z: number
+  infinite: boolean
+  fadeDistance: number
+}
+
+// function to compute fade alpha based on distance from center
+function computeFadeAlpha(options: FadeAlphaOptions): number {
+  const { x, z, infinite, fadeDistance } = options
+  if (!infinite) return 1.0
+  const distance = Math.sqrt(x * x + z * z)
+  const fadeStart = fadeDistance * 0.5
+  const fadeEnd = fadeDistance
+  if (distance < fadeStart) return 1.0
+  if (distance > fadeEnd) return 0.0
+  const t = (distance - fadeStart) / (fadeEnd - fadeStart)
+  return 1.0 - t * t * (3.0 - 2.0 * t)
+}
+
 export function createGrid(options: GridOptions = {}): DrawCall {
   const infinite = options.infinite ?? false
   const baseSize = options.size ?? 10
@@ -34,27 +54,23 @@ export function createGrid(options: GridOptions = {}): DrawCall {
   const stepX = sizeX / divisions
   const stepZ = sizeZ / divisions
 
-  // Helper function to compute fade alpha based on distance from center
-  const computeFadeAlpha = (x: number, z: number): number => {
-    if (!infinite) return 1.0
-    const distance = Math.sqrt(x * x + z * z)
-    const fadeStart = fadeDistance * 0.5 // Start fading at 50% of fade distance
-    const fadeEnd = fadeDistance
-    if (distance < fadeStart) return 1.0
-    if (distance > fadeEnd) return 0.0
-    // Smooth fade using smoothstep curve for nice visual falloff
-    const t = (distance - fadeStart) / (fadeEnd - fadeStart)
-    return 1.0 - t * t * (3.0 - 2.0 * t)
-  }
-
   for (let i = 0; i <= divisions; i++) {
     const pX = -halfSizeX + i * stepX
     const pZ = -halfSizeZ + i * stepZ
 
     // Lines along Z axis
-    const alpha1 = computeFadeAlpha(pX, -halfSizeZ)
-    const alpha2 = computeFadeAlpha(pX, halfSizeZ)
-
+    const alpha1 = computeFadeAlpha({
+      x: pX,
+      z: -halfSizeZ,
+      infinite,
+      fadeDistance,
+    })
+    const alpha2 = computeFadeAlpha({
+      x: pX,
+      z: halfSizeZ,
+      infinite,
+      fadeDistance,
+    })
     positions.push(pX, 0, -halfSizeZ)
     colors.push(color[0]!, color[1]!, color[2]!, alpha1)
     positions.push(pX, 0, halfSizeZ)
@@ -62,9 +78,18 @@ export function createGrid(options: GridOptions = {}): DrawCall {
     indices.push(vertexIndex++, vertexIndex++)
 
     // Lines along X axis
-    const alpha3 = computeFadeAlpha(-halfSizeX, pZ)
-    const alpha4 = computeFadeAlpha(halfSizeX, pZ)
-
+    const alpha3 = computeFadeAlpha({
+      x: -halfSizeX,
+      z: pZ,
+      infinite,
+      fadeDistance,
+    })
+    const alpha4 = computeFadeAlpha({
+      x: halfSizeX,
+      z: pZ,
+      infinite,
+      fadeDistance,
+    })
     positions.push(-halfSizeX, 0, pZ)
     colors.push(color[0]!, color[1]!, color[2]!, alpha3)
     positions.push(halfSizeX, 0, pZ)
