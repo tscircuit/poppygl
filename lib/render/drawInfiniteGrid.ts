@@ -67,6 +67,7 @@ export function drawInfiniteGrid(
   software_renderer: SoftwareRenderer,
   params: {
     camera: Camera
+    grid_y?: number
     cell_size?: number
     section_size?: number
     fade_distance?: number
@@ -76,6 +77,7 @@ export function drawInfiniteGrid(
     gamma_out?: boolean
   },
 ) {
+  const grid_y = params.grid_y ?? 0
   const cell_size = params.cell_size ?? 1
   const section_size = params.section_size ?? 10
   const fade_distance = params.fade_distance ?? 100
@@ -127,21 +129,35 @@ export function drawInfiniteGrid(
       const ray_dir_y = far_point[1] - near_point[1]
       const ray_dir_z = far_point[2] - near_point[2]
 
-      // Intersect ray with y=0 plane
-      // rayOrigin + t * rayDir = (x, 0, z)
-      // near_point[1] + t * ray_dir_y = 0
+      // Intersect ray with y=grid_y plane
+      // rayOrigin + t * rayDir = (x, grid_y, z)
+      // near_point[1] + t * ray_dir_y = grid_y
       if (Math.abs(ray_dir_y) < 1e-6) continue // Ray parallel to plane
 
-      const t = -near_point[1] / ray_dir_y
+      const t = (grid_y - near_point[1]) / ray_dir_y
       if (t < 0 || t > 1) continue // Intersection behind camera or too far
 
       const world_x = near_point[0] + t * ray_dir_x
       const world_z = near_point[2] + t * ray_dir_z
 
-      // Distance from camera to intersection point (in XZ plane)
+      // Transform intersection point to clip space for depth testing
+      const world_pt = vec4.fromValues(world_x, grid_y, world_z, 1)
+      const clip_pt = vec4.create()
+      vec4.transformMat4(clip_pt, world_pt, vp)
+
+      // Calculate NDC depth
+      const ndc_z = clip_pt[2] / clip_pt[3]
+      const depth_01 = ndc_z * 0.5 + 0.5
+
+      // Check depth buffer - skip if something is in front
+      const di = y * software_renderer.width + x
+      if (depth_01 >= software_renderer.depth[di]!) continue
+
+      // Distance from camera to intersection point (3D distance)
       const dx = world_x - cam_pos_x
+      const dy = grid_y - cam_pos_y
       const dz = world_z - cam_pos_z
-      const dist = Math.sqrt(dx * dx + dz * dz)
+      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz)
 
       // Fade calculation
       const alpha = computeGridFadeAlpha({
