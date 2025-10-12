@@ -124,10 +124,23 @@ export function renderDrawCalls(
     }
   }
 
-  // Render infinite grid first (as background)
+  // Opaque first, then masked, then blended (for correct depth sorting)
+  renderGroup(opaqueDraws)
+  renderGroup(maskDraws)
+
+  // Render infinite grid AFTER opaque geometry but BEFORE transparent
+  // This allows proper depth testing so grid appears through/behind geometry
   if (infiniteGridOptions) {
+    // Calculate the Y-center of the model to position the grid plane
+    const aabb = computeWorldAABB(drawCalls)
+    const modelCenterY = (aabb.min[1]! + aabb.max[1]!) / 2
+
+    // Allow user override via offset.y, otherwise use calculated center
+    const gridY = infiniteGridOptions.offset?.y ?? modelCenterY
+
     drawInfiniteGrid(renderer, {
       camera,
+      grid_y: gridY,
       cell_size: infiniteGridOptions.cellSize,
       section_size: infiniteGridOptions.sectionSize,
       fade_distance: infiniteGridOptions.fadeDistance,
@@ -138,9 +151,6 @@ export function renderDrawCalls(
     })
   }
 
-  // Opaque first, then masked, then blended (for correct depth sorting)
-  renderGroup(opaqueDraws)
-  renderGroup(maskDraws)
   renderGroup(blendDraws)
 
   return { bitmap: renderer.bitmap, camera, options }

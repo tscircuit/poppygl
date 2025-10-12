@@ -12,6 +12,7 @@ test("infinite-grid02-with-model", async () => {
     grid: {
       infiniteGrid: true,
       cellSize: 2,
+      offset: { y: 0.2 },
       sectionSize: 20,
       fadeDistance: 100,
       fadeStrength: 1.5,
