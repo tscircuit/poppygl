@@ -49,6 +49,7 @@ export {
   DEFAULT_LIGHT_DIR,
   DEFAULT_RENDER_OPTIONS,
   getDefaultRenderOptions,
+  hexToRgb,
 } from "./render/getDefaultRenderOptions"
 export type {
   RenderOptions,
