@@ -7,6 +7,7 @@ import { createUint8Bitmap } from "../image/createUint8Bitmap"
 import {
   type RenderOptions,
   type RenderOptionsInput,
+  hexToRgb,
 } from "./getDefaultRenderOptions"
 import { SoftwareRenderer } from "./SoftwareRenderer"
 import { resolveRenderOptions } from "./resolveRenderOptions"
@@ -41,13 +42,30 @@ export function renderDrawCalls(
 
   // Clear with background color (transparent by default)
   if (options.backgroundColor) {
-    const [r, g, b] = options.backgroundColor
-    renderer.clear([
-      Math.round(r * 255),
-      Math.round(g * 255),
-      Math.round(b * 255),
-      255,
-    ])
+    let rgb: readonly [number, number, number]
+
+    if (typeof options.backgroundColor === "string") {
+      const converted = hexToRgb(options.backgroundColor)
+      if (!converted) {
+        // Invalid hex, use transparent background
+        renderer.clear([0, 0, 0, 0])
+        rgb = [0, 0, 0]
+      } else {
+        rgb = converted
+      }
+    } else {
+      rgb = options.backgroundColor
+    }
+
+    if (rgb) {
+      const [r, g, b] = rgb
+      renderer.clear([
+        Math.round(r * 255),
+        Math.round(g * 255),
+        Math.round(b * 255),
+        255,
+      ])
+    }
   } else {
     // Transparent background
     renderer.clear([0, 0, 0, 0])
