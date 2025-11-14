@@ -41,33 +41,29 @@ export function renderDrawCalls(
   )
 
   // Clear with background color (transparent by default)
-  if (options.backgroundColor) {
-    let rgb: readonly [number, number, number]
+  let rgb: readonly [number, number, number] | null = null
 
+  if (options.backgroundColor) {
     if (typeof options.backgroundColor === "string") {
-      const converted = hexToRgb(options.backgroundColor)
-      if (!converted) {
-        // Invalid hex, use transparent background
-        renderer.clear([0, 0, 0, 0])
-        rgb = [0, 0, 0]
-      } else {
-        rgb = converted
-      }
+      // Convert hex string to RGB
+      rgb = hexToRgb(options.backgroundColor)
     } else {
+      // Already an RGB tuple
       rgb = options.backgroundColor
     }
+  }
 
-    if (rgb) {
-      const [r, g, b] = rgb
-      renderer.clear([
-        Math.round(r * 255),
-        Math.round(g * 255),
-        Math.round(b * 255),
-        255,
-      ])
-    }
+  if (rgb) {
+    // Clear with the specified background color
+    const [r, g, b] = rgb
+    renderer.clear([
+      Math.round(r * 255),
+      Math.round(g * 255),
+      Math.round(b * 255),
+      255,
+    ])
   } else {
-    // Transparent background
+    // Transparent background (no color specified or invalid hex)
     renderer.clear([0, 0, 0, 0])
   }
 
