@@ -26,6 +26,7 @@ export function hexToRgb(hex: string): [number, number, number] | null {
 export interface RenderOptions {
   width: number
   height: number
+  supersampling: number
   fov: number
   cull: boolean
   gamma: boolean
@@ -42,6 +43,7 @@ export type RenderOptionsInput = Partial<RenderOptions>
 export const DEFAULT_RENDER_OPTIONS: RenderOptions = {
   width: 800,
   height: 600,
+  supersampling: 1,
   fov: 60,
   cull: true,
   gamma: true,

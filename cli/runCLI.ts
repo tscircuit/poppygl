@@ -4,16 +4,16 @@ import {
   DEFAULT_RENDER_OPTIONS,
 } from "../lib/render/getDefaultRenderOptions"
 import { clamp } from "../lib/utils/clamp"
+import { isMainModule } from "./isMainModule"
 import { parseCliArgs } from "./parseCliArgs"
 import { parseVec3 } from "./parseVec3"
-import { isMainModule } from "./isMainModule"
 import { renderGLTFToPNGFile } from "./renderGLTFToPNGFile"
 
 export async function runCLI() {
   const argv = parseCliArgs(process.argv.slice(2))
   if (argv._.length === 0) {
     console.error(
-      "Usage: poppygl model.gltf [--out out.png] [--w 960] [--h 540] [--fov 60]",
+      "Usage: poppygl model.gltf [--out out.png] [--w 960] [--h 540] [--fov 60] [--supersampling 2]",
     )
     process.exit(1)
   }
@@ -46,6 +46,17 @@ export async function runCLI() {
   const lookAt = parseVec3(argv.look)
   const cull = argv.noCull ? false : true
   const gamma = argv.noGamma ? false : true
+  const supersamplingArg =
+    typeof argv.supersampling === "string"
+      ? argv.supersampling
+      : typeof argv.ss === "string"
+        ? argv.ss
+        : `${DEFAULT_RENDER_OPTIONS.supersampling}`
+  const supersamplingParsed = Number.parseInt(supersamplingArg, 10)
+  const supersampling =
+    Number.isFinite(supersamplingParsed) && supersamplingParsed > 0
+      ? supersamplingParsed
+      : DEFAULT_RENDER_OPTIONS.supersampling
 
   await renderGLTFToPNGFile(gltfPath, outPath, {
     width,
@@ -57,6 +68,7 @@ export async function runCLI() {
     lookAt,
     cull,
     gamma,
+    supersampling,
   })
   console.log(`Wrote ${outPath} (${width}x${height})`)
 }

@@ -38,3 +38,5 @@ out.png
 
 .vscode
 .aider*
+
+*.diff.png

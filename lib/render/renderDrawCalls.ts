@@ -4,14 +4,15 @@ import { createGrid } from "../gltf/createGrid"
 import type { DrawCall, GridOptions } from "../gltf/types"
 import type { BitmapLike, ImageFactory } from "../image/createUint8Bitmap"
 import { createUint8Bitmap } from "../image/createUint8Bitmap"
+import { downsampleBitmap } from "./downsampleBitmap"
+import { drawInfiniteGrid } from "./drawInfiniteGrid"
 import {
+  hexToRgb,
   type RenderOptions,
   type RenderOptionsInput,
-  hexToRgb,
 } from "./getDefaultRenderOptions"
-import { SoftwareRenderer } from "./SoftwareRenderer"
 import { resolveRenderOptions } from "./resolveRenderOptions"
-import { drawInfiniteGrid } from "./drawInfiniteGrid"
+import { SoftwareRenderer } from "./SoftwareRenderer"
 
 export interface RenderResult {
   bitmap: BitmapLike
@@ -25,20 +26,18 @@ export function renderDrawCalls(
   imageFactory: ImageFactory = createUint8Bitmap,
 ): RenderResult {
   const options = resolveRenderOptions(optionsInput)
+  const renderWidth = options.width * options.supersampling
+  const renderHeight = options.height * options.supersampling
   const camera = buildCamera(
     drawCalls,
-    options.width,
-    options.height,
+    renderWidth,
+    renderHeight,
     options.fov,
     options.camPos ?? null,
     options.lookAt ?? null,
   )
 
-  const renderer = new SoftwareRenderer(
-    options.width,
-    options.height,
-    imageFactory,
-  )
+  const renderer = new SoftwareRenderer(renderWidth, renderHeight, imageFactory)
 
   // Clear with background color (transparent by default)
   let rgb: readonly [number, number, number] | null = null
@@ -167,5 +166,15 @@ export function renderDrawCalls(
 
   renderGroup(blendDraws)
 
-  return { bitmap: renderer.bitmap, camera, options }
+  const bitmap =
+    options.supersampling > 1
+      ? downsampleBitmap(
+          renderer.bitmap,
+          options.width,
+          options.height,
+          imageFactory,
+        )
+      : renderer.bitmap
+
+  return { bitmap, camera, options }
 }
