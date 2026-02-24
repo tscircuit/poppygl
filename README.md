@@ -50,6 +50,7 @@ const png = await renderGLTFToPNGBufferFromGLBBuffer(glb, {
 `renderGLTFToPNGBufferFromURL` accepts the same render options as the lower-level APIs:
 
 - `width`/`height` (default `512`): output resolution in pixels.
+- `supersampling`: render at `width * supersampling` / `height * supersampling`, then downsample (default `1`).
 - `fov`: vertical field of view in degrees (defaults to `35`).
 - `camPos` and `lookAt`: override the auto-framed camera position and target.
 - `lightDir`: normalized directional light vector (defaults to a top-right key light).

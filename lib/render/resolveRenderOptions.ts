@@ -7,9 +7,16 @@ import {
 export function resolveRenderOptions(
   options: RenderOptionsInput = {},
 ): RenderOptions {
+  const supersampling =
+    typeof options.supersampling === "number" &&
+    Number.isFinite(options.supersampling)
+      ? Math.max(1, Math.floor(options.supersampling))
+      : DEFAULT_RENDER_OPTIONS.supersampling
+
   return {
     ...DEFAULT_RENDER_OPTIONS,
     ...options,
+    supersampling,
     lightDir:
       options.lightDir != null
         ? (options.lightDir as RenderOptions["lightDir"])
