@@ -5,6 +5,7 @@ import type { DrawCall, GridOptions } from "../gltf/types"
 import type { BitmapLike, ImageFactory } from "../image/createUint8Bitmap"
 import { createUint8Bitmap } from "../image/createUint8Bitmap"
 import { downsampleBitmap } from "./downsampleBitmap"
+import { drawDebugPoints } from "./drawDebugPoints"
 import { drawInfiniteGrid } from "./drawInfiniteGrid"
 import {
   hexToRgb,
@@ -165,6 +166,17 @@ export function renderDrawCalls(
   }
 
   renderGroup(blendDraws)
+
+  if (options.debugPoints?.length) {
+    drawDebugPoints(
+      renderer,
+      camera,
+      options.debugPoints,
+      options.debugFontSize,
+      options.debugPointColor,
+      options.debugLabelColor,
+    )
+  }
 
   const bitmap =
     options.supersampling > 1
