@@ -20,6 +20,7 @@
   "type": "module",
   "devDependencies": {
     "@biomejs/biome": "^2.2.4",
+    "@tscircuit/alphabet": "^0.0.22",
     "@types/bun": "^1.2.23",
     "@types/readable-stream": "^4.0.21",
     "looks-same": "^10.0.1",

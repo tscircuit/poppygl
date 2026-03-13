@@ -53,6 +53,10 @@ const png = await renderGLTFToPNGBufferFromGLBBuffer(glb, {
 - `supersampling`: render at `width * supersampling` / `height * supersampling`, then downsample (default `1`).
 - `fov`: vertical field of view in degrees (defaults to `35`).
 - `camPos` and `lookAt`: override the auto-framed camera position and target.
+- `debugPoints`: optional `{ label, position }[]` overlay rendered on top of the final PNG for world-space debugging markers.
+- `debugFontSize`: optional pixel size for `debugPoints` labels; when omitted the renderer derives a size from the image dimensions.
+- `debugPointColor`: optional RGB tuple for debug point markers.
+- `debugLabelColor`: optional RGB tuple for debug point labels.
 - `lightDir`: normalized directional light vector (defaults to a top-right key light).
 - `ambient`: ambient lighting contribution (0–1, defaults to `0.2`).
 - `gamma`: gamma correction applied to the output (defaults to `2.2`).

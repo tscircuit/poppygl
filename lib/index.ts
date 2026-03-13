@@ -48,6 +48,7 @@ export { encodePNGToBuffer } from "./image/encodePNGToBuffer"
 export {
   DEFAULT_LIGHT_DIR,
   DEFAULT_RENDER_OPTIONS,
+  type DebugPoint,
   getDefaultRenderOptions,
   hexToRgb,
 } from "./render/getDefaultRenderOptions"
