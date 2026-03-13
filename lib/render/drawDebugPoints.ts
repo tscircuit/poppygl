@@ -1,20 +1,18 @@
-import { glyphAdvanceRatio, glyphLineAlphabet, textMetrics } from "@tscircuit/alphabet"
+import {
+  glyphAdvanceRatio,
+  glyphLineAlphabet,
+  textMetrics,
+} from "@tscircuit/alphabet"
 import { mat4, vec4 } from "gl-matrix"
 import type { Camera } from "../camera/buildCamera"
 import type { DebugPoint } from "./getDefaultRenderOptions"
 import { SoftwareRenderer } from "./SoftwareRenderer"
 
 const DEFAULT_MARKER_COLOR: readonly [number, number, number, number] = [
-  255,
-  0,
-  170,
-  255,
+  255, 0, 170, 255,
 ]
 const DEFAULT_TEXT_COLOR: readonly [number, number, number, number] = [
-  255,
-  24,
-  170,
-  255,
+  255, 24, 170, 255,
 ]
 const CHARACTER_WIDTH_RATIO = 0.62
 
@@ -41,14 +39,21 @@ export function drawDebugPoints(
   const labelScale =
     typeof debugFontSize === "number" && Number.isFinite(debugFontSize)
       ? Math.max(1, Math.round(debugFontSize))
-      : Math.max(12, Math.round(Math.min(renderer.width, renderer.height) * 0.028))
+      : Math.max(
+          12,
+          Math.round(Math.min(renderer.width, renderer.height) * 0.028),
+        )
   const textThickness = Math.max(
     2,
     Math.round(labelScale * textMetrics.strokeWidthRatio),
   )
 
   for (const debugPoint of debugPoints) {
-    const projected = projectWorldToScreen(debugPoint.position, viewProj, renderer)
+    const projected = projectWorldToScreen(
+      debugPoint.position,
+      viewProj,
+      renderer,
+    )
     if (!projected) continue
 
     drawMarker(renderer, projected, markerColor)
@@ -103,8 +108,22 @@ function drawMarker(
   const centerY = Math.round(projected.y)
 
   for (let offset = -5; offset <= 4; offset += 1) {
-    renderer.setPixel(centerX + offset, centerY, color[0], color[1], color[2], color[3])
-    renderer.setPixel(centerX, centerY + offset, color[0], color[1], color[2], color[3])
+    renderer.setPixel(
+      centerX + offset,
+      centerY,
+      color[0],
+      color[1],
+      color[2],
+      color[3],
+    )
+    renderer.setPixel(
+      centerX,
+      centerY + offset,
+      color[0],
+      color[1],
+      color[2],
+      color[3],
+    )
   }
 }
 
