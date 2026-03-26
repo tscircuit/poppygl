@@ -46,6 +46,8 @@ export { pureImageFactory } from "./image/pureImageFactory"
 export { encodePNGToBuffer } from "./image/encodePNGToBuffer"
 
 export {
+  type CameraRotation,
+  type CameraUp,
   DEFAULT_LIGHT_DIR,
   DEFAULT_RENDER_OPTIONS,
   type DebugPoint,
