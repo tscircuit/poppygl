@@ -16,7 +16,7 @@ import "../fixtures/preload.ts"
 
 async function renderRotatedGLB(
   glb: Uint8Array,
-  rotationDegreesZ: number,
+  rotationDegreesY: number,
 ): Promise<Buffer> {
   const arrayBuffer = new Uint8Array(glb).slice().buffer as ArrayBuffer
   const { gltf, binaryChunk } = parseGLB(arrayBuffer)
@@ -75,7 +75,7 @@ async function renderRotatedGLB(
 
   const rotation = mat4.create()
   mat4.translate(rotation, rotation, [centerX, centerY, centerZ])
-  mat4.rotateZ(rotation, rotation, (rotationDegreesZ * Math.PI) / 180)
+  mat4.rotateY(rotation, rotation, (rotationDegreesY * Math.PI) / 180)
   mat4.translate(rotation, rotation, [-centerX, -centerY, -centerZ])
 
   const rotatedModels = new Set<mat4>()
@@ -93,10 +93,9 @@ async function renderRotatedGLB(
       height: 720,
       supersampling: 2,
       fov: 30,
-      camPos: [2.975, 120, 0],
-      lookAt: [2.975, 4.62, 0],
-      up: "z+",
-      cameraRotation: { x: 0, y: 0, z: 90 },
+      camPos: [0, 120, 0],
+      up: "y+",
+      cameraRotation: { x: -90, y: 0, z: 0 },
       backgroundColor: [1, 1, 1],
     },
     pureImageFactory,

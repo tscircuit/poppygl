@@ -30,38 +30,25 @@ function getWorldUpVector(up: CameraUp | null | undefined): vec3 {
   }
 }
 
-function applyCameraRotation(
+function buildCameraWorldMatrix(
   eye: vec3,
-  center: vec3,
+  forward: vec3,
   up: vec3,
-  rotation: CameraRotation | null | undefined,
-): mat4 {
-  const view = mat4.create()
-  mat4.lookAt(view, eye, center, up)
-
-  if (rotation == null) {
-    return view
-  }
-
-  const forward = vec3.subtract(vec3.create(), center, eye)
-  if (vec3.squaredLength(forward) === 0) {
-    return view
-  }
-  vec3.normalize(forward, forward)
-
-  const right = vec3.cross(vec3.create(), forward, up)
+): mat4 | null {
+  const normalizedForward = vec3.normalize(vec3.create(), forward)
+  const right = vec3.cross(vec3.create(), normalizedForward, up)
   if (vec3.squaredLength(right) === 0) {
-    return view
+    return null
   }
   vec3.normalize(right, right)
 
-  const correctedUp = vec3.cross(vec3.create(), right, forward)
+  const correctedUp = vec3.cross(vec3.create(), right, normalizedForward)
   if (vec3.squaredLength(correctedUp) === 0) {
-    return view
+    return null
   }
   vec3.normalize(correctedUp, correctedUp)
 
-  const cameraWorld = mat4.fromValues(
+  return mat4.fromValues(
     right[0],
     right[1],
     right[2],
@@ -70,15 +57,38 @@ function applyCameraRotation(
     correctedUp[1],
     correctedUp[2],
     0,
-    -forward[0],
-    -forward[1],
-    -forward[2],
+    -normalizedForward[0],
+    -normalizedForward[1],
+    -normalizedForward[2],
     0,
     eye[0],
     eye[1],
     eye[2],
     1,
   )
+}
+
+function getDefaultForwardForUp(up: vec3): vec3 {
+  const zForward = vec3.fromValues(0, 0, -1)
+  if (Math.abs(vec3.dot(up, zForward)) < 0.999) {
+    return zForward
+  }
+  return vec3.fromValues(1, 0, 0)
+}
+
+function buildViewFromRotation(
+  eye: vec3,
+  up: vec3,
+  rotation: CameraRotation,
+): mat4 {
+  const cameraWorld = buildCameraWorldMatrix(
+    eye,
+    getDefaultForwardForUp(up),
+    up,
+  )
+  if (!cameraWorld) {
+    return mat4.create()
+  }
 
   if (rotation.x !== 0) {
     mat4.rotateX(cameraWorld, cameraWorld, toRad(rotation.x))
@@ -90,9 +100,42 @@ function applyCameraRotation(
     mat4.rotateZ(cameraWorld, cameraWorld, toRad(rotation.z))
   }
 
-  const rotatedView = mat4.create()
-  mat4.invert(rotatedView, cameraWorld)
-  return rotatedView
+  const view = mat4.create()
+  mat4.invert(view, cameraWorld)
+  return view
+}
+
+function buildViewFromLookAt(eye: vec3, center: vec3, up: vec3): mat4 {
+  const forward = vec3.subtract(vec3.create(), center, eye)
+  if (vec3.squaredLength(forward) === 0) {
+    return mat4.create()
+  }
+
+  const cameraWorld = buildCameraWorldMatrix(eye, forward, up)
+  if (!cameraWorld) {
+    return mat4.create()
+  }
+
+  const view = mat4.create()
+  mat4.invert(view, cameraWorld)
+  return view
+}
+
+function getAutoDistance(drawCalls: DrawCall[], fovDeg: number) {
+  const aabb = computeWorldAABB(drawCalls)
+  const diag = vec3.distance(
+    vec3.fromValues(aabb.min[0]!, aabb.min[1]!, aabb.min[2]!),
+    vec3.fromValues(aabb.max[0]!, aabb.max[1]!, aabb.max[2]!),
+  )
+  const radius = diag * 0.5
+  const fov = toRad(fovDeg)
+  return radius / Math.tan(fov * 0.5) + radius * 0.5
+}
+
+function getCameraForwardFromView(view: mat4): vec3 {
+  const cameraWorld = mat4.create()
+  mat4.invert(cameraWorld, view)
+  return vec3.fromValues(-cameraWorld[8]!, -cameraWorld[9]!, -cameraWorld[10]!)
 }
 
 export function buildCamera(
@@ -110,49 +153,53 @@ export function buildCamera(
   const far = 1000.0
   const proj = mat4.create()
   mat4.perspective(proj, toRad(fovDeg), aspect, near, far)
+  const worldUp = getWorldUpVector(up)
 
-  let eye: vec3
-  let center: vec3
+  const aabb = computeWorldAABB(drawCalls)
+  const center = vec3.fromValues(
+    0.5 * (aabb.min[0]! + aabb.max[0]!),
+    0.5 * (aabb.min[1]! + aabb.max[1]!),
+    0.5 * (aabb.min[2]! + aabb.max[2]!),
+  )
+  const autoDistance = getAutoDistance(drawCalls, fovDeg)
 
-  if (camPos) {
-    eye = vec3.fromValues(camPos[0]!, camPos[1]!, camPos[2]!)
-    if (lookAt) {
-      center = vec3.fromValues(lookAt[0]!, lookAt[1]!, lookAt[2]!)
-    } else {
-      const aabb = computeWorldAABB(drawCalls)
-      center = vec3.fromValues(
-        0.5 * (aabb.min[0]! + aabb.max[0]!),
-        0.5 * (aabb.min[1]! + aabb.max[1]!),
-        0.5 * (aabb.min[2]! + aabb.max[2]!),
-      )
+  if (cameraRotation) {
+    const provisionalEye = camPos
+      ? vec3.fromValues(camPos[0]!, camPos[1]!, camPos[2]!)
+      : vec3.clone(center)
+    const provisionalView = buildViewFromRotation(
+      provisionalEye,
+      worldUp,
+      cameraRotation,
+    )
+
+    const eye = camPos
+      ? provisionalEye
+      : vec3.scaleAndAdd(
+          vec3.create(),
+          center,
+          getCameraForwardFromView(provisionalView),
+          -autoDistance,
+        )
+
+    return {
+      view: buildViewFromRotation(eye, worldUp, cameraRotation),
+      proj,
     }
-  } else {
-    const aabb = computeWorldAABB(drawCalls)
-    center = vec3.fromValues(
-      0.5 * (aabb.min[0]! + aabb.max[0]!),
-      0.5 * (aabb.min[1]! + aabb.max[1]!),
-      0.5 * (aabb.min[2]! + aabb.max[2]!),
-    )
-    const diag = vec3.distance(
-      vec3.fromValues(aabb.min[0]!, aabb.min[1]!, aabb.min[2]!),
-      vec3.fromValues(aabb.max[0]!, aabb.max[1]!, aabb.max[2]!),
-    )
-    const radius = diag * 0.5
-    const fov = toRad(fovDeg)
-    const dist = radius / Math.tan(fov * 0.5) + radius * 0.5
-    eye = vec3.fromValues(
-      center[0] + dist,
-      center[1] + dist * 0.3,
-      center[2] + dist,
-    )
   }
 
-  const view = applyCameraRotation(
-    eye,
-    center,
-    getWorldUpVector(up),
-    cameraRotation,
-  )
+  const eye = camPos
+    ? vec3.fromValues(camPos[0]!, camPos[1]!, camPos[2]!)
+    : vec3.fromValues(
+        center[0] + autoDistance,
+        center[1] + autoDistance * 0.3,
+        center[2] + autoDistance,
+      )
+  const target = lookAt
+    ? vec3.fromValues(lookAt[0]!, lookAt[1]!, lookAt[2]!)
+    : center
+
+  const view = buildViewFromLookAt(eye, target, worldUp)
 
   return { view, proj }
 }
