@@ -132,6 +132,30 @@ function getAutoDistance(drawCalls: DrawCall[], fovDeg: number) {
   return radius / Math.tan(fov * 0.5) + radius * 0.5
 }
 
+function getAABBCornerDistances(
+  aabb: ReturnType<typeof computeWorldAABB>,
+  eye: vec3,
+) {
+  const xs = [aabb.min[0]!, aabb.max[0]!]
+  const ys = [aabb.min[1]!, aabb.max[1]!]
+  const zs = [aabb.min[2]!, aabb.max[2]!]
+
+  let nearest = Infinity
+  let farthest = 0
+
+  for (const x of xs) {
+    for (const y of ys) {
+      for (const z of zs) {
+        const distance = vec3.distance(eye, vec3.fromValues(x, y, z))
+        nearest = Math.min(nearest, distance)
+        farthest = Math.max(farthest, distance)
+      }
+    }
+  }
+
+  return { nearest, farthest }
+}
+
 function getCameraForwardFromView(view: mat4): vec3 {
   const cameraWorld = mat4.create()
   mat4.invert(cameraWorld, view)
@@ -149,10 +173,6 @@ export function buildCamera(
   cameraRotation: CameraRotation | null | undefined = null,
 ): Camera {
   const aspect = width / height
-  const near = 0.01
-  const far = 1000.0
-  const proj = mat4.create()
-  mat4.perspective(proj, toRad(fovDeg), aspect, near, far)
   const worldUp = getWorldUpVector(up)
 
   const aabb = computeWorldAABB(drawCalls)
@@ -182,6 +202,12 @@ export function buildCamera(
           -autoDistance,
         )
 
+    const { nearest, farthest } = getAABBCornerDistances(aabb, eye)
+    const near = Math.max(0.01, nearest * 0.5)
+    const far = Math.max(1000, farthest * 1.1)
+    const proj = mat4.create()
+    mat4.perspective(proj, toRad(fovDeg), aspect, near, far)
+
     return {
       view: buildViewFromRotation(eye, worldUp, cameraRotation),
       proj,
@@ -199,6 +225,11 @@ export function buildCamera(
     ? vec3.fromValues(lookAt[0]!, lookAt[1]!, lookAt[2]!)
     : center
 
+  const { nearest, farthest } = getAABBCornerDistances(aabb, eye)
+  const near = Math.max(0.01, nearest * 0.5)
+  const far = Math.max(1000, farthest * 1.1)
+  const proj = mat4.create()
+  mat4.perspective(proj, toRad(fovDeg), aspect, near, far)
   const view = buildViewFromLookAt(eye, target, worldUp)
 
   return { view, proj }

@@ -272,8 +272,8 @@ export class SoftwareRenderer {
       const ndcY = c[1] * invW
       const ndcZ = c[2] * invW
 
-      const sx = Math.round((ndcX * 0.5 + 0.5) * (this.width - 1))
-      const sy = Math.round((1 - (ndcY * 0.5 + 0.5)) * (this.height - 1))
+      const sx = (ndcX * 0.5 + 0.5) * (this.width - 1)
+      const sy = (1 - (ndcY * 0.5 + 0.5)) * (this.height - 1)
 
       vScreen[i] = [sx, sy]
       vInvW[i] = invW
@@ -313,10 +313,16 @@ export class SoftwareRenderer {
       if (area === 0) continue
       if (cullBackFaces && area < 0) continue
 
-      let minX = Math.max(0, Math.min(v0[0], v1[0], v2[0]) | 0)
-      let maxX = Math.min(this.width - 1, Math.max(v0[0], v1[0], v2[0]) | 0)
-      let minY = Math.max(0, Math.min(v0[1], v1[1], v2[1]) | 0)
-      let maxY = Math.min(this.height - 1, Math.max(v0[1], v1[1], v2[1]) | 0)
+      const minX = Math.max(0, Math.floor(Math.min(v0[0], v1[0], v2[0])))
+      const maxX = Math.min(
+        this.width - 1,
+        Math.ceil(Math.max(v0[0], v1[0], v2[0])),
+      )
+      const minY = Math.max(0, Math.floor(Math.min(v0[1], v1[1], v2[1])))
+      const maxY = Math.min(
+        this.height - 1,
+        Math.ceil(Math.max(v0[1], v1[1], v2[1])),
+      )
 
       const invW: [number, number, number] = [
         vInvW[i0]!,
@@ -362,6 +368,7 @@ export class SoftwareRenderer {
 
           const zndc = l0 * ndcZ[0] + l1 * ndcZ[1] + l2 * ndcZ[2]
           const z01 = zndc * 0.5 + 0.5
+          if (z01 < 0 || z01 > 1) continue
           const di = y * this.width + x
           const depth = this.depth
           if (z01 >= depth[di]!) continue
