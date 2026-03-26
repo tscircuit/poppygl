@@ -2,10 +2,97 @@ import { mat4, vec3 } from "gl-matrix"
 import type { DrawCall } from "../gltf/types"
 import { computeWorldAABB } from "../gltf/computeWorldAABB"
 import { toRad } from "../utils/toRad"
+import type {
+  CameraRotation,
+  CameraUp,
+} from "../render/getDefaultRenderOptions"
 
 export interface Camera {
   view: mat4
   proj: mat4
+}
+
+function getWorldUpVector(up: CameraUp | null | undefined): vec3 {
+  switch (up) {
+    case "y-":
+      return vec3.fromValues(0, -1, 0)
+    case "x+":
+      return vec3.fromValues(1, 0, 0)
+    case "x-":
+      return vec3.fromValues(-1, 0, 0)
+    case "z+":
+      return vec3.fromValues(0, 0, 1)
+    case "z-":
+      return vec3.fromValues(0, 0, -1)
+    case "y+":
+    default:
+      return vec3.fromValues(0, 1, 0)
+  }
+}
+
+function applyCameraRotation(
+  eye: vec3,
+  center: vec3,
+  up: vec3,
+  rotation: CameraRotation | null | undefined,
+): mat4 {
+  const view = mat4.create()
+  mat4.lookAt(view, eye, center, up)
+
+  if (rotation == null) {
+    return view
+  }
+
+  const forward = vec3.subtract(vec3.create(), center, eye)
+  if (vec3.squaredLength(forward) === 0) {
+    return view
+  }
+  vec3.normalize(forward, forward)
+
+  const right = vec3.cross(vec3.create(), forward, up)
+  if (vec3.squaredLength(right) === 0) {
+    return view
+  }
+  vec3.normalize(right, right)
+
+  const correctedUp = vec3.cross(vec3.create(), right, forward)
+  if (vec3.squaredLength(correctedUp) === 0) {
+    return view
+  }
+  vec3.normalize(correctedUp, correctedUp)
+
+  const cameraWorld = mat4.fromValues(
+    right[0],
+    right[1],
+    right[2],
+    0,
+    correctedUp[0],
+    correctedUp[1],
+    correctedUp[2],
+    0,
+    -forward[0],
+    -forward[1],
+    -forward[2],
+    0,
+    eye[0],
+    eye[1],
+    eye[2],
+    1,
+  )
+
+  if (rotation.x !== 0) {
+    mat4.rotateX(cameraWorld, cameraWorld, toRad(rotation.x))
+  }
+  if (rotation.y !== 0) {
+    mat4.rotateY(cameraWorld, cameraWorld, toRad(rotation.y))
+  }
+  if (rotation.z !== 0) {
+    mat4.rotateZ(cameraWorld, cameraWorld, toRad(rotation.z))
+  }
+
+  const rotatedView = mat4.create()
+  mat4.invert(rotatedView, cameraWorld)
+  return rotatedView
 }
 
 export function buildCamera(
@@ -15,6 +102,8 @@ export function buildCamera(
   fovDeg: number,
   camPos: readonly [number, number, number] | null | undefined,
   lookAt: readonly [number, number, number] | null | undefined,
+  up: CameraUp | null | undefined = "y+",
+  cameraRotation: CameraRotation | null | undefined = null,
 ): Camera {
   const aspect = width / height
   const near = 0.01
@@ -58,9 +147,12 @@ export function buildCamera(
     )
   }
 
-  const up = vec3.fromValues(0, 1, 0)
-  const view = mat4.create()
-  mat4.lookAt(view, eye, center, up)
+  const view = applyCameraRotation(
+    eye,
+    center,
+    getWorldUpVector(up),
+    cameraRotation,
+  )
 
   return { view, proj }
 }

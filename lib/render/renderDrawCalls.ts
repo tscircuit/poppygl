@@ -36,6 +36,8 @@ export function renderDrawCalls(
     options.fov,
     options.camPos ?? null,
     options.lookAt ?? null,
+    options.up,
+    options.cameraRotation ?? null,
   )
 
   const renderer = new SoftwareRenderer(renderWidth, renderHeight, imageFactory)

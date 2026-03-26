@@ -11,6 +11,14 @@ export interface DebugPoint {
   }
 }
 
+export type CameraUp = "y+" | "y-" | "x+" | "x-" | "z+" | "z-"
+
+export interface CameraRotation {
+  x: number
+  y: number
+  z: number
+}
+
 /**
  * Convert a hex color string to RGB array with values 0-1
  * @param hex - Hex color string like "#ffffff" or "ffffff"
@@ -43,6 +51,8 @@ export interface RenderOptions {
   lightDir: readonly [number, number, number]
   camPos?: readonly [number, number, number] | null
   lookAt?: readonly [number, number, number] | null
+  up: CameraUp
+  cameraRotation: CameraRotation | null
   backgroundColor?: readonly [number, number, number] | string | null
   grid?: boolean | GridOptions
   debugPoints?: DebugPoint[] | null
@@ -64,6 +74,8 @@ export const DEFAULT_RENDER_OPTIONS: RenderOptions = {
   lightDir: DEFAULT_LIGHT_DIR,
   camPos: null,
   lookAt: null,
+  up: "y+",
+  cameraRotation: null,
   backgroundColor: null,
   grid: false,
   debugPoints: null,
