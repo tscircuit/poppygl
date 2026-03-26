@@ -6,7 +6,6 @@ import "../fixtures/preload.ts"
 
 test(
   "arduino uno top down snapshot",
-  { timeout: 180_000 },
   async () => {
     const glbPath = fileURLToPath(
       new URL("../fixtures/assets/arduino-uno.glb", import.meta.url),
@@ -26,4 +25,5 @@ test(
 
     await expect(pngBuffer).toMatchPngSnapshot(import.meta.path)
   },
+  { timeout: 180_000 },
 )

@@ -6,19 +6,10 @@ import {
   type RenderOptionsInput,
 } from "./getDefaultRenderOptions"
 
-const CAMERA_UP_VALUES = new Set<CameraUp>([
-  "y+",
-  "y-",
-  "x+",
-  "x-",
-  "z+",
-  "z-",
-])
+const CAMERA_UP_VALUES = new Set<CameraUp>(["y+", "y-", "x+", "x-", "z+", "z-"])
 
 function resolveCameraUp(up: RenderOptionsInput["up"]): CameraUp {
-  return up != null && CAMERA_UP_VALUES.has(up)
-    ? up
-    : DEFAULT_RENDER_OPTIONS.up
+  return up != null && CAMERA_UP_VALUES.has(up) ? up : DEFAULT_RENDER_OPTIONS.up
 }
 
 function resolveCameraRotation(
