@@ -1,17 +1,11 @@
 import { createSceneFromGLTF } from "../gltf/createSceneFromGLTF"
 import { loadGLTFWithResourcesFromPath } from "../gltf/loadGLTFWithResourcesFromPath"
+import { loadGLTFWithResourcesFromURL } from "../gltf/loadGLTFWithResourcesFromURL"
 import type { GLTFResources } from "../gltf/types"
 import { encodePNGToBuffer } from "../image/encodePNGToBuffer"
 import { pureImageFactory } from "../image/pureImageFactory"
 import type { RenderOptionsInput } from "./getDefaultRenderOptions"
-import { renderGLTFToPNGBufferFromURL } from "./renderGLTFToPNGBufferFromURL"
 import { renderDrawCalls } from "./renderDrawCalls"
-
-function browserPathUsageError(): never {
-  throw new Error(
-    "renderGLTFToPNGBuffer could not parse the input as GLTF JSON. In browsers, pass a GLTF JSON string/object or a fetchable URL. Node filesystem paths remain supported when running under Node.",
-  )
-}
 
 function isNodeRuntime(): boolean {
   const runtimeProcess = (
@@ -22,16 +16,12 @@ function isNodeRuntime(): boolean {
   return !!runtimeProcess?.versions?.node
 }
 
-function shouldFetchInNode(source: string): boolean {
+function shouldLoadFromURLInNode(source: string): boolean {
   return (
     /^(https?:)?\/\//i.test(source) ||
     source.startsWith("data:") ||
     source.startsWith("blob:")
   )
-}
-
-function shouldFetchInBrowser(source: string): boolean {
-  return source.trim().length > 0
 }
 
 function renderFromGLTF(
@@ -44,6 +34,26 @@ function renderFromGLTF(
   return encodePNGToBuffer(bitmap)
 }
 
+async function resolveGLTFInput(
+  source: string,
+): Promise<{ gltf: any; resources: GLTFResources }> {
+  try {
+    return {
+      gltf: JSON.parse(source),
+      resources: { buffers: [], images: [] },
+    }
+  } catch (error) {
+    if (!(error instanceof SyntaxError)) throw error
+  }
+
+  if (!isNodeRuntime() || shouldLoadFromURLInNode(source)) {
+    const { gltf, resources } = await loadGLTFWithResourcesFromURL(source)
+    return { gltf, resources }
+  }
+
+  return loadGLTFWithResourcesFromPath(source)
+}
+
 export async function renderGLTFToPNGBuffer(
   gltfOrJson: string | any,
   options: RenderOptionsInput = {},
@@ -53,24 +63,6 @@ export async function renderGLTFToPNGBuffer(
     return renderFromGLTF(gltfOrJson, options, resources)
   }
 
-  try {
-    return await renderFromGLTF(JSON.parse(gltfOrJson), options, resources)
-  } catch (error) {
-    if (!(error instanceof SyntaxError)) throw error
-  }
-
-  if (isNodeRuntime()) {
-    if (shouldFetchInNode(gltfOrJson)) {
-      return await renderGLTFToPNGBufferFromURL(gltfOrJson, options)
-    }
-
-    const loaded = await loadGLTFWithResourcesFromPath(gltfOrJson)
-    return await renderFromGLTF(loaded.gltf, options, loaded.resources)
-  }
-
-  if (shouldFetchInBrowser(gltfOrJson)) {
-    return await renderGLTFToPNGBufferFromURL(gltfOrJson, options)
-  }
-
-  return browserPathUsageError()
+  const loaded = await resolveGLTFInput(gltfOrJson)
+  return renderFromGLTF(loaded.gltf, options, loaded.resources)
 }
