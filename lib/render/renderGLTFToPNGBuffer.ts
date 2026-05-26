@@ -19,9 +19,11 @@ function browserPathUsageError(): never {
 }
 
 function isNodeRuntime(): boolean {
-  const runtimeProcess = (globalThis as {
-    process?: { versions?: { node?: string } }
-  }).process
+  const runtimeProcess = (
+    globalThis as {
+      process?: { versions?: { node?: string } }
+    }
+  ).process
   return !!runtimeProcess?.versions?.node
 }
 
