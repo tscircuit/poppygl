@@ -11,27 +11,40 @@ function isNodeRuntime(): boolean {
   return !!runtimeProcess?.versions?.node
 }
 
-function shouldLoadFromURLInNode(source: string): boolean {
-  return (
-    /^(https?:)?\/\//i.test(source) ||
-    source.startsWith("data:") ||
-    source.startsWith("blob:")
-  )
+function isFetchableURLInNode(source: string): boolean {
+  try {
+    const url = new URL(source)
+    return ["http:", "https:", "data:", "blob:"].includes(url.protocol)
+  } catch {
+    return false
+  }
+}
+
+function parseGLTFJSON(source: string): any | null {
+  try {
+    return JSON.parse(source)
+  } catch (error) {
+    if (error instanceof SyntaxError) return null
+    throw error
+  }
 }
 
 export async function resolveGLTFInput(
   source: string,
 ): Promise<{ gltf: any; resources: GLTFResources }> {
-  try {
+  const gltf = parseGLTFJSON(source)
+  if (gltf !== null) {
     return {
-      gltf: JSON.parse(source),
+      gltf,
       resources: { buffers: [], images: [] },
     }
-  } catch (error) {
-    if (!(error instanceof SyntaxError)) throw error
   }
 
-  if (!isNodeRuntime() || shouldLoadFromURLInNode(source)) {
+  if (!isNodeRuntime()) {
+    return loadGLTFWithResourcesFromURL(source)
+  }
+
+  if (isFetchableURLInNode(source)) {
     return loadGLTFWithResourcesFromURL(source)
   }
 
