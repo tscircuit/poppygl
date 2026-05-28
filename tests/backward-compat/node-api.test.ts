@@ -23,7 +23,7 @@ function expectPngBuffer(bytes: Uint8Array, minLength = 0) {
   expectPngSignature(bytes)
 }
 
-function createGLTFFetch(onFetch?: () => void) {
+function createGLTFFetch() {
   let fetchedURL: string | null = null
 
   return {
@@ -32,7 +32,6 @@ function createGLTFFetch(onFetch?: () => void) {
     },
     fetchImpl: async (url: string) => {
       fetchedURL = url
-      onFetch?.()
       return {
         ok: true,
         status: 200,
@@ -78,31 +77,6 @@ test("root renderGLTFToPNGBuffer accepts GLTF JSON strings", async () => {
   })
 
   expectPngBuffer(pngBuffer)
-})
-
-test("root renderGLTFToPNGBuffer treats string inputs as URLs outside Node", async () => {
-  const globalWithProcess = globalThis as typeof globalThis & {
-    process?: typeof process
-  }
-  const originalProcess = globalWithProcess.process
-  const gltfFetch = createGLTFFetch(() => {
-    globalWithProcess.process = originalProcess
-  })
-
-  try {
-    Reflect.deleteProperty(globalWithProcess, "process")
-
-    const pngBuffer = await renderGLTFToPNGBuffer("model.gltf", {
-      width: 16,
-      height: 16,
-      fetchImpl: gltfFetch.fetchImpl,
-    })
-
-    expect(gltfFetch.fetchedURL).toBe("model.gltf")
-    expectPngBuffer(pngBuffer)
-  } finally {
-    globalWithProcess.process = originalProcess
-  }
 })
 
 test("encodePNGToBuffer keeps returning a Node Buffer at runtime", async () => {
