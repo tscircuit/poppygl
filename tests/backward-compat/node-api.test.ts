@@ -5,11 +5,45 @@ import {
   renderGLTFToPNGBuffer,
 } from "../../lib"
 
+const EMPTY_GLTF_JSON = JSON.stringify({
+  asset: { version: "2.0" },
+  scenes: [],
+})
+
 function expectPngSignature(bytes: Uint8Array) {
   expect(bytes[0]).toBe(0x89)
   expect(bytes[1]).toBe(0x50)
   expect(bytes[2]).toBe(0x4e)
   expect(bytes[3]).toBe(0x47)
+}
+
+function expectPngBuffer(bytes: Uint8Array, minLength = 0) {
+  expect(Buffer.isBuffer(bytes)).toBe(true)
+  if (minLength > 0) expect(bytes.length).toBeGreaterThan(minLength)
+  expectPngSignature(bytes)
+}
+
+function createGLTFFetch(onFetch?: () => void) {
+  let fetchedURL: string | null = null
+
+  return {
+    get fetchedURL() {
+      return fetchedURL
+    },
+    fetchImpl: async (url: string) => {
+      fetchedURL = url
+      onFetch?.()
+      return {
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        url: "https://example.test/model.gltf",
+        async arrayBuffer() {
+          return new TextEncoder().encode(EMPTY_GLTF_JSON).buffer
+        },
+      }
+    },
+  }
 }
 
 test("root renderGLTFToPNGBuffer keeps supporting filesystem paths in Node", async () => {
@@ -18,16 +52,62 @@ test("root renderGLTFToPNGBuffer keeps supporting filesystem paths in Node", asy
     height: 96,
   })
 
-  expect(Buffer.isBuffer(pngBuffer)).toBe(true)
-  expect(pngBuffer.length).toBeGreaterThan(100)
-  expectPngSignature(pngBuffer)
+  expectPngBuffer(pngBuffer, 100)
+})
+
+test("root renderGLTFToPNGBuffer forwards custom fetch for URL inputs", async () => {
+  const gltfFetch = createGLTFFetch()
+
+  const pngBuffer = await renderGLTFToPNGBuffer(
+    "https://example.test/model.gltf",
+    {
+      width: 16,
+      height: 16,
+      fetchImpl: gltfFetch.fetchImpl,
+    },
+  )
+
+  expect(gltfFetch.fetchedURL).toBe("https://example.test/model.gltf")
+  expectPngBuffer(pngBuffer)
+})
+
+test("root renderGLTFToPNGBuffer accepts GLTF JSON strings", async () => {
+  const pngBuffer = await renderGLTFToPNGBuffer(EMPTY_GLTF_JSON, {
+    width: 16,
+    height: 16,
+  })
+
+  expectPngBuffer(pngBuffer)
+})
+
+test("root renderGLTFToPNGBuffer treats string inputs as URLs outside Node", async () => {
+  const globalWithProcess = globalThis as typeof globalThis & {
+    process?: typeof process
+  }
+  const originalProcess = globalWithProcess.process
+  const gltfFetch = createGLTFFetch(() => {
+    globalWithProcess.process = originalProcess
+  })
+
+  try {
+    Reflect.deleteProperty(globalWithProcess, "process")
+
+    const pngBuffer = await renderGLTFToPNGBuffer("model.gltf", {
+      width: 16,
+      height: 16,
+      fetchImpl: gltfFetch.fetchImpl,
+    })
+
+    expect(gltfFetch.fetchedURL).toBe("model.gltf")
+    expectPngBuffer(pngBuffer)
+  } finally {
+    globalWithProcess.process = originalProcess
+  }
 })
 
 test("encodePNGToBuffer keeps returning a Node Buffer at runtime", async () => {
   const image = pureImageFactory(2, 2)
   const pngBuffer = await encodePNGToBuffer(image)
 
-  expect(Buffer.isBuffer(pngBuffer)).toBe(true)
-  expect(pngBuffer.length).toBeGreaterThan(10)
-  expectPngSignature(pngBuffer)
+  expectPngBuffer(pngBuffer, 10)
 })

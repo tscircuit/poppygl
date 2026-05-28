@@ -1,10 +1,15 @@
 import { createSceneFromGLTF } from "../gltf/createSceneFromGLTF"
+import type { LoadGLTFWithResourcesFromURLOptions } from "../gltf/loadGLTFWithResourcesFromURL"
 import { resolveGLTFInput } from "../gltf/resolveGLTFInput"
 import type { GLTFResources } from "../gltf/types"
 import { encodePNGToBuffer } from "../image/encodePNGToBuffer"
 import { pureImageFactory } from "../image/pureImageFactory"
 import type { RenderOptionsInput } from "./getDefaultRenderOptions"
 import { renderDrawCalls } from "./renderDrawCalls"
+
+export interface RenderGLTFToPNGBufferOptions
+  extends RenderOptionsInput,
+    LoadGLTFWithResourcesFromURLOptions {}
 
 function renderFromGLTF(
   gltf: any,
@@ -18,13 +23,15 @@ function renderFromGLTF(
 
 export async function renderGLTFToPNGBuffer(
   gltfOrJson: string | any,
-  options: RenderOptionsInput = {},
+  options: RenderGLTFToPNGBufferOptions = {},
   resources: GLTFResources = { buffers: [], images: [] },
 ): Promise<Buffer> {
+  const { fetchImpl, ...renderOptions } = options
+
   if (typeof gltfOrJson !== "string") {
-    return renderFromGLTF(gltfOrJson, options, resources)
+    return renderFromGLTF(gltfOrJson, renderOptions, resources)
   }
 
-  const loaded = await resolveGLTFInput(gltfOrJson)
-  return renderFromGLTF(loaded.gltf, options, loaded.resources)
+  const loaded = await resolveGLTFInput(gltfOrJson, { fetchImpl })
+  return renderFromGLTF(loaded.gltf, renderOptions, loaded.resources)
 }

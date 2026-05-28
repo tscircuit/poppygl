@@ -1,5 +1,8 @@
 import { loadGLTFWithResourcesFromPath } from "./loadGLTFWithResourcesFromPath"
-import { loadGLTFWithResourcesFromURL } from "./loadGLTFWithResourcesFromURL"
+import {
+  type LoadGLTFWithResourcesFromURLOptions,
+  loadGLTFWithResourcesFromURL,
+} from "./loadGLTFWithResourcesFromURL"
 import type { GLTFResources } from "./types"
 
 function isNodeRuntime(): boolean {
@@ -31,6 +34,7 @@ function parseGLTFJSON(source: string): any | null {
 
 export async function resolveGLTFInput(
   source: string,
+  options: LoadGLTFWithResourcesFromURLOptions = {},
 ): Promise<{ gltf: any; resources: GLTFResources }> {
   const gltf = parseGLTFJSON(source)
   if (gltf !== null) {
@@ -41,11 +45,11 @@ export async function resolveGLTFInput(
   }
 
   if (!isNodeRuntime()) {
-    return loadGLTFWithResourcesFromURL(source)
+    return loadGLTFWithResourcesFromURL(source, options)
   }
 
   if (isFetchableURLInNode(source)) {
-    return loadGLTFWithResourcesFromURL(source)
+    return loadGLTFWithResourcesFromURL(source, options)
   }
 
   return loadGLTFWithResourcesFromPath(source)
