@@ -1,11 +1,12 @@
 import { PassThrough } from "readable-stream"
 import * as PImage from "pureimage"
 import type { BitmapLike } from "../image/createUint8Bitmap"
+import { base64ToUint8Array } from "../utils/bytes"
 
 export function bufferFromDataURI(uri: string): Uint8Array {
   const match = uri.match(/^data:.*?;base64,(.*)$/)
   if (!match) throw new Error(`Unsupported data URI: ${uri.slice(0, 64)}...`)
-  return Buffer.from(match[1]!, "base64")
+  return base64ToUint8Array(match[1]!)
 }
 
 export function isPNG(filenameOrUri: string) {
@@ -39,7 +40,7 @@ export function detectMimeTypeFromBuffer(
 
 export function bufferToStream(buf: Uint8Array) {
   const stream = new PassThrough()
-  stream.end(Buffer.from(buf))
+  ;(stream.end as (chunk: Uint8Array) => void)(buf)
   return stream
 }
 

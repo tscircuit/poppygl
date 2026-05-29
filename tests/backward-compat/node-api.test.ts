@@ -83,5 +83,6 @@ test("encodePNGToBuffer keeps returning a Node Buffer at runtime", async () => {
   const image = pureImageFactory(2, 2)
   const pngBuffer = await encodePNGToBuffer(image)
 
+  expect(pngBuffer).toBeInstanceOf(Uint8Array)
   expectPngBuffer(pngBuffer, 10)
 })
