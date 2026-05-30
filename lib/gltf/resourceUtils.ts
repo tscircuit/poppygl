@@ -40,7 +40,8 @@ async function decodeImageViaCanvas(
   buf: Uint8Array,
   mimeType: string,
 ): Promise<BitmapLike> {
-  const blob = new Blob([buf], { type: mimeType })
+  const bytes = new Uint8Array(buf)
+  const blob = new Blob([bytes.buffer as ArrayBuffer], { type: mimeType })
   const bitmap = await createImageBitmap(blob)
   const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
   const ctx = canvas.getContext("2d")!

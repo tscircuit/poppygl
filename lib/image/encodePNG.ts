@@ -4,11 +4,7 @@ async function encodePNGViaCanvas(image: BitmapLike): Promise<Uint8Array> {
   const canvas = new OffscreenCanvas(image.width, image.height)
   const ctx = canvas.getContext("2d")!
   const imageData = new ImageData(
-    new Uint8ClampedArray(
-      image.data.buffer,
-      image.data.byteOffset,
-      image.data.byteLength,
-    ),
+    new Uint8ClampedArray(image.data),
     image.width,
     image.height,
   )
