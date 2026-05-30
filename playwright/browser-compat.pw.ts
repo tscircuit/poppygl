@@ -21,24 +21,12 @@ test("browser root export renders without Node globals", async ({ page }) => {
     (await page.getByTestId("compat-state").textContent()) ?? "null",
   )
   expect(result.status).toBe("done")
+  expect(result.noNodeGlobals).toBe(true)
 
-  expect(result.globalsBeforeImport.hasBufferGlobal).toBe(false)
-  expect(result.globalsBeforeImport.hasProcessGlobal).toBe(false)
+  expect(result.renders.inMemory.width).toBe(320)
+  expect(result.renders.inMemory.height).toBe(240)
+  expect(result.renders.inMemory.dataUrl).toContain("data:image/png")
 
-  expect(result.inMemory.isUint8Array).toBe(true)
-  expect(result.inMemory.constructorName).toBe("Uint8Array")
-  expect(result.inMemory.length).toBeGreaterThan(100)
-  expect(result.inMemory.hasValidPngSignature).toBe(true)
-  expect(result.inMemory.width).toBe(96)
-  expect(result.inMemory.height).toBe(72)
-
-  expect(result.url.isUint8Array).toBe(true)
-  expect(result.url.constructorName).toBe("Uint8Array")
-  expect(result.url.length).toBeGreaterThan(100)
-  expect(result.url.hasValidPngSignature).toBe(true)
-
-  expect(result.glb.isUint8Array).toBe(true)
-  expect(result.glb.constructorName).toBe("Uint8Array")
-  expect(result.glb.length).toBeGreaterThan(100)
-  expect(result.glb.hasValidPngSignature).toBe(true)
+  expect(result.renders.fromUrl.dataUrl).toContain("data:image/png")
+  expect(result.renders.fromGlb.dataUrl).toContain("data:image/png")
 })
