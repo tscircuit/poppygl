@@ -75,8 +75,8 @@ export async function renderGLTFToPNGFromGLB(
               "Embed textures or load via renderGLTFToPNGFromURL.",
           )
         }
-        const data = bufferFromDataURI(image.uri)
-        return decodeImageFromBuffer(data, image.mimeType)
+        const imageBytes = bufferFromDataURI(image.uri)
+        return decodeImageFromBuffer(imageBytes, image.mimeType)
       }
 
       if (typeof image.bufferView === "number") {
