@@ -1,3 +1,4 @@
+import { decode } from "fast-png"
 import type { BitmapLike } from "../image/createUint8Bitmap"
 import { base64ToUint8Array } from "../utils/bytes"
 
@@ -36,21 +37,12 @@ export function detectMimeTypeFromBuffer(
   return null
 }
 
-async function decodeImageViaCanvas(
-  buf: Uint8Array,
-  mimeType: string,
-): Promise<BitmapLike> {
-  const bytes = new Uint8Array(buf)
-  const blob = new Blob([bytes.buffer as ArrayBuffer], { type: mimeType })
-  const bitmap = await createImageBitmap(blob)
-  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
-  const ctx = canvas.getContext("2d")!
-  ctx.drawImage(bitmap, 0, 0)
-  const imageData = ctx.getImageData(0, 0, bitmap.width, bitmap.height)
+async function decodeImageViaFastPng(buf: Uint8Array): Promise<BitmapLike> {
+  const decoded = decode(buf)
   return {
-    width: bitmap.width,
-    height: bitmap.height,
-    data: imageData.data,
+    width: decoded.width,
+    height: decoded.height,
+    data: new Uint8ClampedArray(decoded.data),
   }
 }
 
@@ -78,8 +70,8 @@ export async function decodeImageFromBuffer(
       `Unsupported embedded image mimeType: ${mimeType ?? "unknown"}`,
     )
   }
-  if (typeof OffscreenCanvas !== "undefined") {
-    return decodeImageViaCanvas(buf, type)
+  if (type === "image/png") {
+    return decodeImageViaFastPng(buf)
   }
   return decodeImageViaPureImage(buf, type)
 }

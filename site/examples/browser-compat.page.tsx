@@ -117,7 +117,7 @@ export default function BrowserCompatPage() {
       <h1 style={{ marginBottom: 8 }}>Browser Compatibility Fixture</h1>
       <p style={{ color: "#666", marginTop: 0, fontSize: 14 }}>
         Renders glTF in-browser with no Node.js globals (Buffer, process). Each
-        image is a plain Uint8Array PNG encoded via OffscreenCanvas.
+        image is a plain Uint8Array PNG encoded via fast-png.
       </p>
 
       <pre

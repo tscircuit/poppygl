@@ -37,6 +37,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "fast-png": "^8.0.0",
     "gl-matrix": "^3.4.4",
     "pureimage": "^0.4.18",
     "readable-stream": "^4.7.0"
