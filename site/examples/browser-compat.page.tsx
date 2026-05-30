@@ -21,6 +21,14 @@ function parsePngDimensions(png: Uint8Array): {
   }
 }
 
+function uint8ArrayToDataUrl(bytes: Uint8Array): string {
+  let binary = ""
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]!)
+  }
+  return `data:image/png;base64,${btoa(binary)}`
+}
+
 type CompatState =
   | { status: "running" }
   | {
@@ -36,18 +44,21 @@ type CompatState =
         hasValidPngSignature: boolean
         width: number
         height: number
+        dataUrl: string
       }
       url: {
         isUint8Array: boolean
         constructorName: string
         length: number
         hasValidPngSignature: boolean
+        dataUrl: string
       }
       glb: {
         isUint8Array: boolean
         constructorName: string
         length: number
         hasValidPngSignature: boolean
+        dataUrl: string
       }
     }
   | {
@@ -57,8 +68,8 @@ type CompatState =
     }
 
 const renderOptions = {
-  width: 96,
-  height: 72,
+  width: 256,
+  height: 192,
   grid: { size: 8 },
   camPos: [8, 6, 8] as [number, number, number],
   lookAt: [0, 0, 0] as [number, number, number],
@@ -107,8 +118,8 @@ export default function BrowserCompatPage() {
         )
         const glbBytes = new Uint8Array(await glbResponse.arrayBuffer())
         const glbPng = await renderGLTFToPNGFromGLB(glbBytes, {
-          width: 128,
-          height: 96,
+          width: 256,
+          height: 192,
         })
 
         const inMemoryDims = parsePngDimensions(inMemoryPng)
@@ -123,18 +134,21 @@ export default function BrowserCompatPage() {
             hasValidPngSignature: hasValidSignature(inMemoryPng),
             width: inMemoryDims.width,
             height: inMemoryDims.height,
+            dataUrl: uint8ArrayToDataUrl(inMemoryPng),
           },
           url: {
             isUint8Array: urlPng instanceof Uint8Array,
             constructorName: urlPng.constructor.name,
             length: urlPng.length,
             hasValidPngSignature: hasValidSignature(urlPng),
+            dataUrl: uint8ArrayToDataUrl(urlPng),
           },
           glb: {
             isUint8Array: glbPng instanceof Uint8Array,
             constructorName: glbPng.constructor.name,
             length: glbPng.length,
             hasValidPngSignature: hasValidSignature(glbPng),
+            dataUrl: uint8ArrayToDataUrl(glbPng),
           },
         })
       } catch (error) {
@@ -152,7 +166,47 @@ export default function BrowserCompatPage() {
   return (
     <main style={{ fontFamily: "monospace", padding: 16 }}>
       <h1>Browser Compatibility Fixture</h1>
-      <pre data-testid="compat-state">{JSON.stringify(state, null, 2)}</pre>
+      <pre data-testid="compat-state" style={{ fontSize: 12, maxHeight: 200, overflow: "auto" }}>
+        {JSON.stringify(
+          state,
+          (_key, value) => (typeof value === "string" && value.startsWith("data:") ? "[data URL]" : value),
+          2,
+        )}
+      </pre>
+      {state.status === "done" && (
+        <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 16 }}>
+          <div>
+            <h3>In-Memory (empty scene)</h3>
+            <img
+              src={state.inMemory.dataUrl}
+              width={state.inMemory.width}
+              height={state.inMemory.height}
+              style={{ border: "1px solid #ccc", imageRendering: "pixelated" }}
+            />
+          </div>
+          <div>
+            <h3>URL (soic8.gltf)</h3>
+            <img
+              src={state.url.dataUrl}
+              style={{ border: "1px solid #ccc", imageRendering: "pixelated" }}
+            />
+          </div>
+          <div>
+            <h3>GLB (arduino-uno.glb)</h3>
+            <img
+              src={state.glb.dataUrl}
+              style={{ border: "1px solid #ccc", imageRendering: "pixelated" }}
+            />
+          </div>
+        </div>
+      )}
+      {state.status === "error" && (
+        <pre style={{ color: "red", marginTop: 16 }}>
+          {state.message}
+          {"\n"}
+          {state.stack}
+        </pre>
+      )}
     </main>
   )
 }
