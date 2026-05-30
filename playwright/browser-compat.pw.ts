@@ -1,9 +1,6 @@
 import { expect, test } from "@playwright/test"
 
-// Enable this when the root browser entrypoint is browser-safe and backward-compatible.
-test.skip("browser root export renders without Node globals and rejects filesystem paths separately", async ({
-  page,
-}) => {
+test("browser root export renders without Node globals", async ({ page }) => {
   const fixtureId = encodeURIComponent(
     JSON.stringify({ path: "site/examples/browser-compat.page.tsx" }),
   )
@@ -31,13 +28,17 @@ test.skip("browser root export renders without Node globals and rejects filesyst
   expect(result.inMemory.isUint8Array).toBe(true)
   expect(result.inMemory.constructorName).toBe("Uint8Array")
   expect(result.inMemory.length).toBeGreaterThan(100)
+  expect(result.inMemory.hasValidPngSignature).toBe(true)
+  expect(result.inMemory.width).toBe(96)
+  expect(result.inMemory.height).toBe(72)
 
   expect(result.url.isUint8Array).toBe(true)
   expect(result.url.constructorName).toBe("Uint8Array")
   expect(result.url.length).toBeGreaterThan(100)
+  expect(result.url.hasValidPngSignature).toBe(true)
 
-  expect(result.browserPathError).toContain(
-    "could not parse the input as GLTF JSON",
-  )
-  expect(result.browserPathError).toContain("fetchable URL")
+  expect(result.glb.isUint8Array).toBe(true)
+  expect(result.glb.constructorName).toBe("Uint8Array")
+  expect(result.glb.length).toBeGreaterThan(100)
+  expect(result.glb.hasValidPngSignature).toBe(true)
 })

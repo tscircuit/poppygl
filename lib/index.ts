@@ -43,6 +43,7 @@ export type {
   RGBA,
 } from "./image/createUint8Bitmap"
 export { pureImageFactory } from "./image/pureImageFactory"
+export { encodePNG } from "./image/encodePNG"
 export { encodePNGToBuffer } from "./image/encodePNGToBuffer"
 
 export {
@@ -58,6 +59,14 @@ export type {
   RenderOptions,
   RenderOptionsInput,
 } from "./render/getDefaultRenderOptions"
+export {
+  renderGLTFToPNGFromURL,
+  type RenderGLTFToPNGFromURLOptions,
+} from "./render/renderGLTFToPNGFromURL"
+export {
+  renderGLTFToPNGFromGLB,
+  type RenderGLTFToPNGFromGLBOptions,
+} from "./render/renderGLTFToPNGFromGLB"
 export {
   renderGLTFToPNGBufferFromURL,
   type RenderGLTFToPNGBufferFromURLOptions,

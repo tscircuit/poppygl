@@ -1,5 +1,3 @@
-import { PassThrough } from "readable-stream"
-import * as PImage from "pureimage"
 import type { BitmapLike } from "../image/createUint8Bitmap"
 import { base64ToUint8Array } from "../utils/bytes"
 
@@ -38,10 +36,35 @@ export function detectMimeTypeFromBuffer(
   return null
 }
 
-export function bufferToStream(buf: Uint8Array) {
+async function decodeImageViaCanvas(
+  buf: Uint8Array,
+  mimeType: string,
+): Promise<BitmapLike> {
+  const blob = new Blob([buf], { type: mimeType })
+  const bitmap = await createImageBitmap(blob)
+  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
+  const ctx = canvas.getContext("2d")!
+  ctx.drawImage(bitmap, 0, 0)
+  const imageData = ctx.getImageData(0, 0, bitmap.width, bitmap.height)
+  return {
+    width: bitmap.width,
+    height: bitmap.height,
+    data: imageData.data,
+  }
+}
+
+async function decodeImageViaPureImage(
+  buf: Uint8Array,
+  mimeType: string,
+): Promise<BitmapLike> {
+  const { PassThrough } = await import("readable-stream")
+  const PImage = await import("pureimage")
   const stream = new PassThrough()
   ;(stream.end as (chunk: Uint8Array) => void)(buf)
-  return stream
+  if (mimeType === "image/png") return PImage.decodePNGFromStream(stream as any)
+  if (mimeType === "image/jpeg" || mimeType === "image/jpg")
+    return PImage.decodeJPEGFromStream(stream as any)
+  throw new Error(`Unsupported embedded image mimeType: ${mimeType}`)
 }
 
 export async function decodeImageFromBuffer(
@@ -49,11 +72,13 @@ export async function decodeImageFromBuffer(
   mimeType?: string | null,
 ): Promise<BitmapLike> {
   const type = detectMimeTypeFromBuffer(buf, mimeType)
-  if (type === "image/png")
-    return PImage.decodePNGFromStream(bufferToStream(buf))
-  if (type === "image/jpeg" || type === "image/jpg")
-    return PImage.decodeJPEGFromStream(bufferToStream(buf))
-  throw new Error(
-    `Unsupported embedded image mimeType: ${mimeType ?? "unknown"}`,
-  )
+  if (!type) {
+    throw new Error(
+      `Unsupported embedded image mimeType: ${mimeType ?? "unknown"}`,
+    )
+  }
+  if (typeof OffscreenCanvas !== "undefined") {
+    return decodeImageViaCanvas(buf, type)
+  }
+  return decodeImageViaPureImage(buf, type)
 }
