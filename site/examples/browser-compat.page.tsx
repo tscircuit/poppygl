@@ -166,15 +166,23 @@ export default function BrowserCompatPage() {
   return (
     <main style={{ fontFamily: "monospace", padding: 16 }}>
       <h1>Browser Compatibility Fixture</h1>
-      <pre data-testid="compat-state" style={{ fontSize: 12, maxHeight: 200, overflow: "auto" }}>
+      <pre
+        data-testid="compat-state"
+        style={{ fontSize: 12, maxHeight: 200, overflow: "auto" }}
+      >
         {JSON.stringify(
           state,
-          (_key, value) => (typeof value === "string" && value.startsWith("data:") ? "[data URL]" : value),
+          (_key, value) =>
+            typeof value === "string" && value.startsWith("data:")
+              ? "[data URL]"
+              : value,
           2,
         )}
       </pre>
       {state.status === "done" && (
-        <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 16 }}>
+        <div
+          style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 16 }}
+        >
           <div>
             <h3>In-Memory (empty scene)</h3>
             <img
