@@ -51,6 +51,7 @@ const png = await renderGLTFToPNGBufferFromGLBBuffer(glb, {
 
 - `width`/`height` (default `512`): output resolution in pixels.
 - `supersampling`: render at `width * supersampling` / `height * supersampling`, then downsample (default `1`).
+- `renderMode`: `"solid"` (default) or `"wireframe"` to draw triangle mesh edges.
 - `fov`: vertical field of view in degrees (defaults to `35`).
 - `camPos` and `lookAt`: override the auto-framed camera position and target.
 - `up`: choose the world-up axis for the camera with `"y+" | "y-" | "x+" | "x-" | "z+" | "z-"`.
