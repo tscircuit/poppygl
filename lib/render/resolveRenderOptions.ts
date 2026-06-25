@@ -1,7 +1,7 @@
 import {
-  DEFAULT_RENDER_OPTIONS,
   type CameraRotation,
   type CameraUp,
+  DEFAULT_RENDER_OPTIONS,
   type RenderOptions,
   type RenderOptionsInput,
 } from "./getDefaultRenderOptions"
@@ -32,11 +32,14 @@ function resolveCameraRotation(
 export function resolveRenderOptions(
   options: RenderOptionsInput = {},
 ): RenderOptions {
+  const supersamplingInput = options.supersampling
+  const hasExplicitSupersampling = typeof supersamplingInput === "number"
   const supersampling =
-    typeof options.supersampling === "number" &&
-    Number.isFinite(options.supersampling)
-      ? Math.max(1, Math.floor(options.supersampling))
-      : DEFAULT_RENDER_OPTIONS.supersampling
+    hasExplicitSupersampling && Number.isFinite(supersamplingInput)
+      ? Math.max(1, Math.floor(supersamplingInput))
+      : options.antialias
+        ? 2
+        : DEFAULT_RENDER_OPTIONS.supersampling
 
   return {
     ...DEFAULT_RENDER_OPTIONS,
