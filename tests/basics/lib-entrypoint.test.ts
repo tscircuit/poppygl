@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test"
 import { fileURLToPath } from "node:url"
-import { renderGLTFToPNGBuffer } from "../../lib"
+import { renderGLTFToPNGBuffer } from "../../cli/renderGLTFToPNGBuffer"
 import "../fixtures/preload.ts"
 
 test("lib renderGLTFToPNGBuffer renders filesystem paths", async () => {

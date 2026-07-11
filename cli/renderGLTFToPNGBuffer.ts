@@ -1,9 +1,6 @@
-import {
-  createSceneFromGLTF,
-  encodePNGToBuffer,
-  pureImageFactory,
-  renderSceneFromGLTF,
-} from "../lib/index"
+import { createSceneFromGLTF, renderSceneFromGLTF } from "../lib/index"
+import { encodePNGToBuffer } from "../lib/image/encodePNGToBuffer"
+import { pureImageFactory } from "../lib/image/pureImageFactory"
 import type { RenderOptionsInput } from "../lib/render/getDefaultRenderOptions"
 import { loadGLTFWithResources } from "./loadGLTFWithResources"
 

@@ -1,9 +1,7 @@
 import { expect, test } from "bun:test"
-import {
-  encodePNGToBuffer,
-  pureImageFactory,
-  renderGLTFToPNGBuffer,
-} from "../../lib"
+import { renderGLTFToPNGFromURL } from "../../lib"
+import { encodePNGToBuffer, pureImageFactory } from "../../cli"
+import { renderGLTFToPNGBuffer } from "../../cli/renderGLTFToPNGBuffer"
 
 const EMPTY_GLTF_JSON = JSON.stringify({
   asset: { version: "2.0" },
@@ -45,7 +43,7 @@ function createGLTFFetch() {
   }
 }
 
-test("root renderGLTFToPNGBuffer keeps supporting filesystem paths in Node", async () => {
+test("node renderGLTFToPNGBuffer keeps supporting filesystem paths", async () => {
   const pngBuffer = await renderGLTFToPNGBuffer("./tests/basics/soic8.gltf", {
     width: 96,
     height: 96,
@@ -54,23 +52,20 @@ test("root renderGLTFToPNGBuffer keeps supporting filesystem paths in Node", asy
   expectPngBuffer(pngBuffer, 100)
 })
 
-test("root renderGLTFToPNGBuffer forwards custom fetch for URL inputs", async () => {
+test("universal URL renderer forwards custom fetch", async () => {
   const gltfFetch = createGLTFFetch()
 
-  const pngBuffer = await renderGLTFToPNGBuffer(
-    "https://example.test/model.gltf",
-    {
-      width: 16,
-      height: 16,
-      fetchImpl: gltfFetch.fetchImpl,
-    },
-  )
+  const png = await renderGLTFToPNGFromURL("https://example.test/model.gltf", {
+    width: 16,
+    height: 16,
+    fetchImpl: gltfFetch.fetchImpl,
+  })
 
   expect(gltfFetch.fetchedURL).toBe("https://example.test/model.gltf")
-  expectPngBuffer(pngBuffer)
+  expectPngSignature(png)
 })
 
-test("root renderGLTFToPNGBuffer accepts GLTF JSON strings", async () => {
+test("node renderGLTFToPNGBuffer accepts GLTF JSON strings", async () => {
   const pngBuffer = await renderGLTFToPNGBuffer(EMPTY_GLTF_JSON, {
     width: 16,
     height: 16,

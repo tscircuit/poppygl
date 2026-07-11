@@ -42,9 +42,7 @@ export type {
   MutableRGBA,
   RGBA,
 } from "./image/createUint8Bitmap"
-export { pureImageFactory } from "./image/pureImageFactory"
 export { encodePNG } from "./image/encodePNG"
-export { encodePNGToBuffer } from "./image/encodePNGToBuffer"
 
 export {
   type CameraRotation,
@@ -67,19 +65,6 @@ export {
   renderGLTFToPNGFromGLB,
   type RenderGLTFToPNGFromGLBOptions,
 } from "./render/renderGLTFToPNGFromGLB"
-export {
-  renderGLTFToPNGBufferFromURL,
-  type RenderGLTFToPNGBufferFromURLOptions,
-} from "./render/renderGLTFToPNGBufferFromURL"
-export {
-  renderGLTFToPNGBufferFromGLBBuffer,
-  type RenderGLTFToPNGBufferFromGLBBufferOptions,
-} from "./render/renderGLTFToPNGBufferFromGLBBuffer"
-export {
-  renderGLTFToPNGBuffer,
-  type RenderGLTFToPNGBufferOptions,
-} from "./render/renderGLTFToPNGBuffer"
-
 export function renderSceneFromGLTF(
   scene: import("./gltf/types").GLTFScene,
   options?: import("./render/getDefaultRenderOptions").RenderOptionsInput,

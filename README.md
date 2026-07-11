@@ -9,10 +9,10 @@ Render GLTF files to PNG images in completely native JavaScript without WebGL/Op
 Give poppygl a `.gltf` or `.glb` URL and it will fetch every referenced buffer/texture, rasterize the scene, and hand back a PNG buffer.
 
 ```ts
-import { renderGLTFToPNGBufferFromURL } from "poppygl"
+import { renderGLTFToPNGFromURL } from "poppygl"
 import { writeFile } from "node:fs/promises"
 
-const png = await renderGLTFToPNGBufferFromURL(
+const png = await renderGLTFToPNGFromURL(
   "https://models.babylonjs.com/DamagedHelmet.glb",
   {
     width: 800,
@@ -28,14 +28,14 @@ await writeFile("DamagedHelmet.png", png)
 
 ## Render from an in-memory GLB buffer
 
-Already have the `.glb` bytes (for example, uploaded by a user or read from disk)? Send the buffer straight to `renderGLTFToPNGBufferFromGLBBuffer` and receive the PNG output.
+Already have the `.glb` bytes (for example, uploaded by a user or read from disk)? Send the buffer straight to `renderGLTFToPNGFromGLB` and receive the PNG output.
 
 ```ts
 import { readFile } from "node:fs/promises"
-import { renderGLTFToPNGBufferFromGLBBuffer } from "poppygl"
+import { renderGLTFToPNGFromGLB } from "poppygl"
 
 const glb = await readFile("DamagedHelmet.glb")
-const png = await renderGLTFToPNGBufferFromGLBBuffer(glb, {
+const png = await renderGLTFToPNGFromGLB(glb, {
   width: 1024,
   height: 768,
 })
@@ -43,11 +43,11 @@ const png = await renderGLTFToPNGBufferFromGLBBuffer(glb, {
 // write or return the PNG buffer
 ```
 
-> This helper expects every referenced buffer/image to be embedded in the GLB (the usual single-file package). If the asset links out to external resources, load it with `renderGLTFToPNGBufferFromURL` instead so poppygl can fetch the extras.
+> This helper expects every referenced buffer/image to be embedded in the GLB (the usual single-file package). If the asset links out to external resources, load it with `renderGLTFToPNGFromURL` instead so poppygl can fetch the extras.
 
 ## Render options
 
-`renderGLTFToPNGBufferFromURL` accepts the same render options as the lower-level APIs:
+`renderGLTFToPNGFromURL` accepts the same render options as the lower-level APIs:
 
 - `width`/`height` (default `512`): output resolution in pixels.
 - `supersampling`: render at `width * supersampling` / `height * supersampling`, then downsample (default `1`).
@@ -76,8 +76,8 @@ import {
   bufferFromDataURI,
   createSceneFromGLTF,
   decodeImageFromBuffer,
-  encodePNGToBuffer,
-  pureImageFactory,
+  encodePNG,
+  createUint8Bitmap,
   renderSceneFromGLTF,
 } from "poppygl"
 import gltfJson from "./CesiumMan.gltf.json" assert { type: "json" }
@@ -105,8 +105,8 @@ const images = await Promise.all(
 )
 
 const scene = createSceneFromGLTF(gltfJson, { buffers, images })
-const { bitmap } = renderSceneFromGLTF(scene, { width: 512, height: 512 }, pureImageFactory)
-const png = await encodePNGToBuffer(bitmap)
+const { bitmap } = renderSceneFromGLTF(scene, { width: 512, height: 512 }, createUint8Bitmap)
+const png = await encodePNG(bitmap)
 ```
 
 The only contract is that `buffers` is an array of `Uint8Array` instances and `images` is an array of `BitmapLike` textures (PNG and JPEG are supported out of the box via `decodeImageFromBuffer`).
@@ -116,7 +116,7 @@ The only contract is that `buffers` is an array of `Uint8Array` instances and `i
 - `loadGLTFWithResourcesFromURL` returns `{ gltf, resources }` if you prefer to inspect or cache the parsed data before rendering.
 - `createSceneFromGLTF` builds draw calls ready for the software rasterizer.
 - `computeSmoothNormals` and `computeWorldAABB` expose useful preprocessing helpers.
-- `pureImageFactory` allocates the `pureimage` bitmap implementation used by the renderer.
-- `encodePNGToBuffer` packs any `BitmapLike` into a PNG buffer that can be written to disk or served over the network.
+- `createUint8Bitmap` allocates a portable in-memory bitmap used by the renderer.
+- `encodePNG` packs any `BitmapLike` into a `Uint8Array` PNG that can be written to disk or served over the network.
 
 Happy rendering!
