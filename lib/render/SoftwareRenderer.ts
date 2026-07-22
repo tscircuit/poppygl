@@ -442,6 +442,12 @@ export class SoftwareRenderer {
           // Skip masked fragments below cutoff
           if (alphaMode === "MASK" && a < alphaCutoff) continue
 
+          // glTF OPAQUE materials ignore alpha. MASK materials are also fully
+          // opaque after passing the cutoff.
+          if (alphaMode !== "BLEND") {
+            a = 1
+          }
+
           // For BLEND, do not write to depth yet — blend with existing pixel
           const shouldWriteDepth = alphaMode !== "BLEND"
           if (shouldWriteDepth) {
