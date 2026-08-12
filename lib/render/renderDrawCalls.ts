@@ -1,6 +1,7 @@
 import { buildCamera, type Camera } from "../camera/buildCamera"
 import { computeWorldAABB } from "../gltf/computeWorldAABB"
 import { createGrid } from "../gltf/createGrid"
+import { createEdgeDrawCall } from "../gltf/createEdgeDrawCall"
 import type { DrawCall, GridOptions } from "../gltf/types"
 import type { BitmapLike, ImageFactory } from "../image/createUint8Bitmap"
 import { createUint8Bitmap } from "../image/createUint8Bitmap"
@@ -168,6 +169,26 @@ export function renderDrawCalls(
   }
 
   renderGroup(blendDraws)
+
+  for (const dc of drawCalls) {
+    if (!dc.showHiddenEdges) continue
+    const edgeDrawCall = createEdgeDrawCall(dc)
+    if (!edgeDrawCall) continue
+
+    renderer.drawLines(edgeDrawCall, camera, options.gamma, {
+      depthCompare: "less-equal",
+      depthWrite: false,
+      depthBias: 0.0001,
+    })
+    renderer.drawLines(edgeDrawCall, camera, options.gamma, {
+      depthCompare: "greater",
+      depthWrite: false,
+      depthBias: 0.0001,
+      dashed: true,
+      dashLength: 4 * options.supersampling,
+      opacity: 0.35,
+    })
+  }
 
   if (options.debugPoints?.length) {
     drawDebugPoints(

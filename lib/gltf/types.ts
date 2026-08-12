@@ -17,6 +17,7 @@ export interface DrawCall {
   material: Material
   colors?: Float32Array | null
   mode?: number // glTF primitive mode: 4 = triangles, 1 = lines
+  showHiddenEdges?: boolean
 }
 
 export interface GridOptions {

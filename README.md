@@ -67,6 +67,30 @@ const png = await renderGLTFToPNGFromGLB(glb, {
 
 You can inspect the defaults via `getDefaultRenderOptions()` or reuse the internal merge logic with `resolveRenderOptions()`.
 
+### Hidden edges for selected sub-models
+
+Set `showHiddenEdges` in a glTF node's `extras` to render that node with solid
+visible edges and faint dashed edges where its geometry is occluded:
+
+```json
+{
+  "nodes": [
+    { "name": "Housing", "mesh": 0 },
+    {
+      "name": "InternalBracket",
+      "mesh": 1,
+      "extras": { "showHiddenEdges": true }
+    }
+  ]
+}
+```
+
+The namespaced form `{ "extras": { "poppygl": { "showHiddenEdges": true } } }`
+is also supported. The setting can be placed on a mesh or primitive; primitive
+extras take precedence over node extras, which take precedence over mesh extras.
+PoppyGL derives boundary and crease edges from triangle geometry, so no line
+primitives need to be added to the asset.
+
 ## If you already have the GLTF JSON
 
 When the GLTF JSON object is already in memory (for example, bundled with your app), skip the network loader and supply resources directly:

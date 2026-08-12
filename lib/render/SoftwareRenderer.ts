@@ -21,6 +21,15 @@ export interface LightSettings {
   ambient: number
 }
 
+export interface LineRenderOptions {
+  depthCompare?: "less" | "less-equal" | "greater"
+  depthWrite?: boolean
+  depthBias?: number
+  dashed?: boolean
+  dashLength?: number
+  opacity?: number
+}
+
 export class SoftwareRenderer {
   readonly width: number
   readonly height: number
@@ -63,7 +72,12 @@ export class SoftwareRenderer {
     this.buffer[idx + 3] = a
   }
 
-  drawLines(mesh: DrawCall, camera: Camera, gammaOut = true) {
+  drawLines(
+    mesh: DrawCall,
+    camera: Camera,
+    gammaOut = true,
+    options: LineRenderOptions = {},
+  ) {
     const { positions, indices, model, material } = mesh
     if (!indices) return
 
@@ -120,7 +134,12 @@ export class SoftwareRenderer {
     const r255 = (r * 255) | 0
     const g255 = (g * 255) | 0
     const b255 = (b * 255) | 0
-    const a255 = (clamp(a, 0, 1) * 255) | 0
+    const opacity = clamp(options.opacity ?? 1, 0, 1)
+    const sourceAlpha = clamp(a, 0, 1) * opacity
+    const depthCompare = options.depthCompare ?? "less"
+    const depthWrite = options.depthWrite ?? true
+    const depthBias = options.depthBias ?? 0
+    const dashLength = Math.max(1, options.dashLength ?? 4)
 
     for (let i = 0; i < indices.length; i += 2) {
       const i0 = indices[i + 0]!
@@ -161,6 +180,13 @@ export class SoftwareRenderer {
       let z = z0_01
 
       for (let k = 0; k <= steps; k++) {
+        if (options.dashed && Math.floor(k / dashLength) % 2 === 1) {
+          x += xinc
+          y += yinc
+          z += zinc
+          continue
+        }
+
         const xi = Math.round(x)
         const yi = Math.round(y)
 
@@ -173,9 +199,46 @@ export class SoftwareRenderer {
           z <= 1
         ) {
           const di = yi * this.width + xi
-          if (z < this.depth[di]!) {
-            this.depth[di] = z
-            this.setPixel(xi, yi, r255, g255, b255, a255)
+          const currentDepth = this.depth[di]!
+          const passesDepth =
+            depthCompare === "greater"
+              ? z > currentDepth + depthBias
+              : depthCompare === "less-equal"
+                ? z <= currentDepth + depthBias
+                : z < currentDepth - depthBias
+          if (passesDepth) {
+            if (depthWrite) this.depth[di] = z
+
+            const pixelIndex = di * 4
+            const destinationAlpha = this.buffer[pixelIndex + 3]! / 255
+            const oneMinusSourceAlpha = 1 - sourceAlpha
+            const outAlpha =
+              sourceAlpha + destinationAlpha * oneMinusSourceAlpha
+            const outR =
+              outAlpha === 0
+                ? 0
+                : (r255 * sourceAlpha +
+                    this.buffer[pixelIndex + 0]! *
+                      destinationAlpha *
+                      oneMinusSourceAlpha) /
+                  outAlpha
+            const outG =
+              outAlpha === 0
+                ? 0
+                : (g255 * sourceAlpha +
+                    this.buffer[pixelIndex + 1]! *
+                      destinationAlpha *
+                      oneMinusSourceAlpha) /
+                  outAlpha
+            const outB =
+              outAlpha === 0
+                ? 0
+                : (b255 * sourceAlpha +
+                    this.buffer[pixelIndex + 2]! *
+                      destinationAlpha *
+                      oneMinusSourceAlpha) /
+                  outAlpha
+            this.setPixel(xi, yi, outR, outG, outB, outAlpha * 255)
           }
         }
         x += xinc

@@ -5,6 +5,7 @@ export { resolveRenderOptions } from "./render/resolveRenderOptions"
 export type { RenderResult } from "./render/renderDrawCalls"
 
 export { createGrid } from "./gltf/createGrid"
+export { createEdgeDrawCall } from "./gltf/createEdgeDrawCall"
 export { createInfiniteGrid } from "./gltf/createInfiniteGrid"
 export { createSceneFromGLTF } from "./gltf/createSceneFromGLTF"
 export { computeSmoothNormals } from "./gltf/computeSmoothNormals"
@@ -32,7 +33,10 @@ export { buildCamera } from "./camera/buildCamera"
 export type { Camera } from "./camera/buildCamera"
 
 export { SoftwareRenderer } from "./render/SoftwareRenderer"
-export type { LightSettings } from "./render/SoftwareRenderer"
+export type {
+  LightSettings,
+  LineRenderOptions,
+} from "./render/SoftwareRenderer"
 export { drawInfiniteGrid } from "./render/drawInfiniteGrid"
 
 export { createUint8Bitmap } from "./image/createUint8Bitmap"

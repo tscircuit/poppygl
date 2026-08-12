@@ -58,6 +58,16 @@ type AccessorType = keyof typeof NUM_COMPONENTS
 
 type GLTF = any
 
+function readShowHiddenEdges(extras: any): boolean | undefined {
+  if (typeof extras?.poppygl?.showHiddenEdges === "boolean") {
+    return extras.poppygl.showHiddenEdges
+  }
+  if (typeof extras?.showHiddenEdges === "boolean") {
+    return extras.showHiddenEdges
+  }
+  return undefined
+}
+
 type ReadAccessorContext = {
   gltf: GLTF
   buffers: Uint8Array[]
@@ -354,6 +364,11 @@ export function createSceneFromGLTF(
             model: world,
             material,
             colors,
+            showHiddenEdges:
+              readShowHiddenEdges(primitive.extras) ??
+              readShowHiddenEdges(node.extras) ??
+              readShowHiddenEdges(mesh.extras) ??
+              false,
           })
         }
       }
