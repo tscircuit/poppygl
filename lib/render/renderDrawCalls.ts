@@ -1,7 +1,7 @@
 import { buildCamera, type Camera } from "../camera/buildCamera"
 import { computeWorldAABB } from "../gltf/computeWorldAABB"
-import { createGrid } from "../gltf/createGrid"
 import { createEdgeDrawCall } from "../gltf/createEdgeDrawCall"
+import { createGrid } from "../gltf/createGrid"
 import type { DrawCall, GridOptions } from "../gltf/types"
 import type { BitmapLike, ImageFactory } from "../image/createUint8Bitmap"
 import { createUint8Bitmap } from "../image/createUint8Bitmap"
@@ -13,8 +13,9 @@ import {
   type RenderOptions,
   type RenderOptionsInput,
 } from "./getDefaultRenderOptions"
+import { CAD_VIEWER_LIGHTS } from "./lights-presets"
 import { resolveRenderOptions } from "./resolveRenderOptions"
-import { SoftwareRenderer } from "./SoftwareRenderer"
+import { type LightSettings, SoftwareRenderer } from "./SoftwareRenderer"
 
 export interface RenderResult {
   bitmap: BitmapLike
@@ -123,6 +124,32 @@ export function renderDrawCalls(
     (dc) => (dc.material.alphaMode ?? "OPAQUE") === "BLEND",
   )
 
+  const hasPhysicalLights =
+    optionsInput.ambientColor != null ||
+    optionsInput.directionalLights != null ||
+    optionsInput.hemisphere != null
+
+  const lightConfig: LightSettings = !hasPhysicalLights
+    ? {
+        dir: options.lightDir,
+        ambient: options.ambient,
+        ambientColor: null,
+        directionalLights: null,
+        hemisphere: null,
+        toneMapping: optionsInput.toneMapping ?? "none",
+        exposure: optionsInput.exposure ?? 1,
+      }
+    : {
+        dir: options.lightDir,
+        ambient: options.ambient,
+        ambientColor: options.ambientColor ?? CAD_VIEWER_LIGHTS.ambientColor,
+        directionalLights:
+          options.directionalLights ?? CAD_VIEWER_LIGHTS.directionalLights,
+        hemisphere: options.hemisphere ?? CAD_VIEWER_LIGHTS.hemisphere,
+        toneMapping: optionsInput.toneMapping ?? "aces",
+        exposure: optionsInput.exposure ?? 1,
+      }
+
   // Helper to render groups
   const renderGroup = (dcs: DrawCall[]) => {
     for (const dc of dcs) {
@@ -132,7 +159,7 @@ export function renderDrawCalls(
         renderer.drawMesh(
           dc,
           camera,
-          { dir: options.lightDir, ambient: options.ambient },
+          lightConfig,
           dc.material,
           options.cull,
           options.gamma,

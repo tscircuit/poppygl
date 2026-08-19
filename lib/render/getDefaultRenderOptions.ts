@@ -1,4 +1,8 @@
 import type { GridOptions } from "../gltf/types"
+import type {
+  DirectionalLightSettings,
+  HemisphereLightSettings,
+} from "./lights-presets"
 
 export const DEFAULT_LIGHT_DIR = [-0.4, -0.9, -0.2] as const
 
@@ -59,6 +63,11 @@ export interface RenderOptions {
   debugFontSize?: number | null
   debugPointColor?: readonly [number, number, number] | null
   debugLabelColor?: readonly [number, number, number] | null
+  toneMapping?: "none" | "aces"
+  exposure?: number
+  ambientColor?: readonly [number, number, number] | null
+  directionalLights?: readonly DirectionalLightSettings[] | null
+  hemisphere?: HemisphereLightSettings | null
 }
 
 export type RenderOptionsInput = Partial<RenderOptions>
@@ -82,6 +91,11 @@ export const DEFAULT_RENDER_OPTIONS: RenderOptions = {
   debugFontSize: null,
   debugPointColor: null,
   debugLabelColor: null,
+  toneMapping: "none",
+  exposure: 1,
+  ambientColor: null,
+  directionalLights: null,
+  hemisphere: null,
 }
 
 export function getDefaultRenderOptions(): RenderOptions {
