@@ -4,38 +4,28 @@ import type {
   HemisphereLightSettings,
 } from "./lights-presets"
 
-export interface PhysicalLightingInput {
-  baseColor: readonly [number, number, number]
-  normal: readonly [number, number, number]
-  worldPos: readonly [number, number, number]
-  camPos: readonly [number, number, number]
-  metalness: number
-  roughness: number
-  ambientColor?: readonly [number, number, number] | null
-  directionalLights?: readonly DirectionalLightSettings[] | null
-  hemisphere?: HemisphereLightSettings | null
-}
-
 // Single-scatter GGX specular (D_GGX, V_GGX_SmithCorrelated, F_Schlick) matching
 // three.js MeshStandardMaterial. Sources:
 //   three/src/renderers/shaders/ShaderChunk/lights_physical_pars_fragment.glsl.js
 //   three/src/renderers/shaders/ShaderChunk/bsdfs.glsl.js (F_Schlick)
 export function computePhysicalLighting(
-  input: PhysicalLightingInput,
+  baseColor: readonly [number, number, number, number],
+  normal: readonly [number, number, number],
+  worldPos: readonly number[],
+  camPos: readonly [number, number, number],
+  metalness: number,
+  roughness: number,
+  ambientColor: readonly [number, number, number] | null | undefined,
+  directionalLights: readonly DirectionalLightSettings[] | null | undefined,
+  hemisphere: HemisphereLightSettings | null | undefined,
 ): [number, number, number] {
-  const {
-    baseColor,
-    normal,
-    worldPos,
-    camPos,
-    ambientColor,
-    directionalLights,
-    hemisphere,
-  } = input
+  const wx = worldPos[0]!
+  const wy = worldPos[1]!
+  const wz = worldPos[2]!
 
-  const materialMetalness = clamp(input.metalness, 0, 1)
+  const materialMetalness = clamp(metalness, 0, 1)
   // three.js floors roughness at 0.0525 (lights_physical_fragment.glsl.js).
-  const materialRoughness = clamp(input.roughness, 0.0525, 1)
+  const materialRoughness = clamp(roughness, 0.0525, 1)
 
   const f0R = 0.04 + (baseColor[0] - 0.04) * materialMetalness
   const f0G = 0.04 + (baseColor[1] - 0.04) * materialMetalness
@@ -77,9 +67,9 @@ export function computePhysicalLighting(
   let specB = 0
 
   if (directionalLights) {
-    let vx = camPos[0] - worldPos[0]
-    let vy = camPos[1] - worldPos[1]
-    let vz = camPos[2] - worldPos[2]
+    let vx = camPos[0] - wx
+    let vy = camPos[1] - wy
+    let vz = camPos[2] - wz
     const vlen = Math.hypot(vx, vy, vz) || 1
     vx /= vlen
     vy /= vlen

@@ -411,6 +411,8 @@ export class SoftwareRenderer {
       }
     }
 
+    const toneScratch: [number, number, number] = [0, 0, 0]
+
     for (let i = 0; i < idx.length; i += 3) {
       const i0 = idx[i + 0]!
       const i1 = idx[i + 1]!
@@ -550,22 +552,18 @@ export class SoftwareRenderer {
           let b: number
 
           if (usePhysicalLights) {
-            const [wx, wy, wz] = this.perspInterp(wps!, invW, [l0, l1, l2]) as [
-              number,
-              number,
-              number,
-            ]
-            const lit = computePhysicalLighting({
-              baseColor: [baseColor[0], baseColor[1], baseColor[2]],
-              normal: nrm,
-              worldPos: [wx, wy, wz],
-              camPos: camPos!,
-              metalness: material.metallicFactor ?? 1,
-              roughness: material.roughnessFactor ?? 1,
-              ambientColor: light.ambientColor,
+            const wp = this.perspInterp(wps!, invW, [l0, l1, l2])
+            const lit = computePhysicalLighting(
+              baseColor,
+              nrm,
+              wp,
+              camPos!,
+              material.metallicFactor ?? 1,
+              material.roughnessFactor ?? 1,
+              light.ambientColor,
               directionalLights,
               hemisphere,
-            })
+            )
             r = lit[0]
             g = lit[1]
             b = lit[2]
@@ -616,10 +614,13 @@ export class SoftwareRenderer {
           const toneMapping = light.toneMapping ?? "none"
           const exposure = light.exposure ?? 1
           if (toneMapping === "aces") {
-            const [tr, tg, tb] = acesFilmicToneMapping([r, g, b], exposure)
-            r = tr
-            g = tg
-            b = tb
+            toneScratch[0] = r
+            toneScratch[1] = g
+            toneScratch[2] = b
+            acesFilmicToneMapping(toneScratch, exposure)
+            r = toneScratch[0]
+            g = toneScratch[1]
+            b = toneScratch[2]
           }
           if (gammaOut) {
             r = srgbEncodeLinear01(clamp(r, 0, 1))

@@ -7,7 +7,7 @@ function rrtAndOdtFit(v: number): number {
 }
 
 export function acesFilmicToneMapping(
-  color: readonly [number, number, number],
+  color: [number, number, number],
   exposure = 1,
 ): [number, number, number] {
   const s = exposure / 0.6
@@ -23,13 +23,17 @@ export function acesFilmicToneMapping(
   const gFit = rrtAndOdtFit(gIn)
   const bFit = rrtAndOdtFit(bIn)
 
-  const rOut = 1.60475 * rFit - 0.53108 * gFit - 0.07367 * bFit
-  const gOut = -0.10208 * rFit + 1.10813 * gFit - 0.00605 * bFit
-  const bOut = -0.00327 * rFit - 0.07276 * gFit + 1.07602 * bFit
-
-  return [
-    Math.min(1, Math.max(0, rOut)),
-    Math.min(1, Math.max(0, gOut)),
-    Math.min(1, Math.max(0, bOut)),
-  ]
+  color[0] = Math.min(
+    1,
+    Math.max(0, 1.60475 * rFit - 0.53108 * gFit - 0.07367 * bFit),
+  )
+  color[1] = Math.min(
+    1,
+    Math.max(0, -0.10208 * rFit + 1.10813 * gFit - 0.00605 * bFit),
+  )
+  color[2] = Math.min(
+    1,
+    Math.max(0, -0.00327 * rFit - 0.07276 * gFit + 1.07602 * bFit),
+  )
+  return color
 }
