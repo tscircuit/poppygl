@@ -281,15 +281,6 @@ export default function PhysicalLightingPage() {
         margin: "0 auto",
       }}
     >
-      <h1 style={{ marginTop: 0, marginBottom: 4, fontSize: 22 }}>
-        Physical lighting
-      </h1>
-      <p style={{ color: "#666", marginTop: 0, fontSize: 14 }}>
-        Opt-in PBR lighting (GGX), sRGB texture decode, CAD viewer light rig and
-        ACES tone mapping on a circuit board. Legacy single-light rendering
-        stays the default.
-      </p>
-
       <div
         style={{
           display: "flex",
