@@ -6,6 +6,8 @@ export interface Material {
   baseColorTexture: BitmapLike | null
   alphaMode?: "OPAQUE" | "MASK" | "BLEND"
   alphaCutoff?: number
+  metallicFactor?: number
+  roughnessFactor?: number
 }
 
 export interface DrawCall {

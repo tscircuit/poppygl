@@ -4,21 +4,32 @@ import { computeSmoothNormals } from "../gltf/computeSmoothNormals"
 import type { DrawCall, Material } from "../gltf/types"
 import {
   type BitmapLike,
+  createUint8Bitmap,
   type ImageFactory,
   type MutableRGBA,
-  createUint8Bitmap,
 } from "../image/createUint8Bitmap"
+import { acesFilmicToneMapping } from "../utils/aces"
+import { clamp } from "../utils/clamp"
+import { srgbDecodeLinear01 } from "../utils/srgbDecodeLinear01"
+import { srgbEncodeLinear01 } from "../utils/srgbEncodeLinear01"
+import { computePhysicalLighting } from "./computePhysicalLighting"
 import {
   DEFAULT_LIGHT_DIR,
   DEFAULT_RENDER_OPTIONS,
 } from "./getDefaultRenderOptions"
-import { mulColor } from "../utils/mulColor"
-import { srgbEncodeLinear01 } from "../utils/srgbEncodeLinear01"
-import { clamp } from "../utils/clamp"
+import type {
+  DirectionalLightSettings,
+  HemisphereLightSettings,
+} from "./lights-presets"
 
 export interface LightSettings {
   dir: readonly [number, number, number]
   ambient: number
+  ambientColor?: readonly [number, number, number] | null
+  directionalLights?: readonly DirectionalLightSettings[] | null
+  hemisphere?: HemisphereLightSettings | null
+  toneMapping?: "none" | "aces"
+  exposure?: number
 }
 
 export interface LineRenderOptions {
@@ -301,6 +312,37 @@ export class SoftwareRenderer {
     const normalMat = mat3.create()
     mat3.normalFromMat4(normalMat, model)
 
+    const usePhysicalLights =
+      light.ambientColor != null ||
+      light.directionalLights != null ||
+      light.hemisphere != null
+
+    // three.js normalizes light directions (Vector3.transformDirection), so
+    // normalize once per mesh rather than per pixel.
+    const normDir = (
+      d: readonly [number, number, number],
+    ): [number, number, number] => {
+      const len = Math.hypot(d[0], d[1], d[2]) || 1
+      return [d[0] / len, d[1] / len, d[2] / len]
+    }
+
+    const directionalLights = light.directionalLights?.map((dl) => ({
+      color: dl.color,
+      intensity: dl.intensity,
+      dir: normDir(dl.dir),
+    }))
+
+    const hemisphere = light.hemisphere
+      ? { ...light.hemisphere, dir: normDir(light.hemisphere.dir) }
+      : null
+
+    let camPos: [number, number, number] | null = null
+    if (usePhysicalLights) {
+      const camWorld = mat4.create()
+      mat4.invert(camWorld, view)
+      camPos = [camWorld[12]!, camWorld[13]!, camWorld[14]!]
+    }
+
     const vertexCount = (positions.length / 3) | 0
     const idx =
       indices ??
@@ -319,6 +361,7 @@ export class SoftwareRenderer {
     const vInvW = new Float32Array(vertexCount)
     const vNDCz = new Float32Array(vertexCount)
     const vWorldN = new Array<[number, number, number]>(vertexCount)
+    const vWorldPos = new Array<[number, number, number]>(vertexCount)
     const vColor = new Array<[number, number, number]>(vertexCount)
 
     for (let i = 0; i < vertexCount; i++) {
@@ -350,6 +393,16 @@ export class SoftwareRenderer {
       const nw = vec3.create()
       vec3.transformMat3(nw, n, normalMat)
       vWorldN[i] = [nw[0]!, nw[1]!, nw[2]!]
+
+      if (usePhysicalLights) {
+        const wpos = vec3.fromValues(
+          positions[i * 3 + 0]!,
+          positions[i * 3 + 1]!,
+          positions[i * 3 + 2]!,
+        )
+        vec3.transformMat4(wpos, wpos, model)
+        vWorldPos[i] = [wpos[0]!, wpos[1]!, wpos[2]!]
+      }
 
       if (colors && colors.length >= (i + 1) * 3) {
         vColor[i] = [colors[i * 3 + 0]!, colors[i * 3 + 1]!, colors[i * 3 + 2]!]
@@ -402,6 +455,9 @@ export class SoftwareRenderer {
         vWorldN[i1]!,
         vWorldN[i2]!,
       ]
+      const wps: [number, number, number][] | null = usePhysicalLights
+        ? [vWorldPos[i0]!, vWorldPos[i1]!, vWorldPos[i2]!]
+        : null
       const uv: [number, number][] | null = uvs
         ? [
             [uvs[i0 * 2 + 0]!, uvs[i0 * 2 + 1]!],
@@ -450,7 +506,19 @@ export class SoftwareRenderer {
               uvp[0]!,
               uvp[1]!,
             )
-            baseColor = mulColor(baseColor, texel)
+            baseColor = usePhysicalLights
+              ? [
+                  baseColor[0] * srgbDecodeLinear01(texel[0]),
+                  baseColor[1] * srgbDecodeLinear01(texel[1]),
+                  baseColor[2] * srgbDecodeLinear01(texel[2]),
+                  baseColor[3] * texel[3],
+                ]
+              : [
+                  baseColor[0] * texel[0],
+                  baseColor[1] * texel[1],
+                  baseColor[2] * texel[2],
+                  baseColor[3] * texel[3],
+                ]
           }
 
           const [cr, cg, cb] = this.perspInterp(cs, invW, [l0, l1, l2]) as [
@@ -477,25 +545,51 @@ export class SoftwareRenderer {
             np2 / nlen,
           ]
 
-          const lightDir = light.dir ?? DEFAULT_LIGHT_DIR
-          const ambient = clamp(
-            light.ambient ?? DEFAULT_RENDER_OPTIONS.ambient,
-            0,
-            1,
-          )
-          const L = vec3.normalize(
-            vec3.create(),
-            vec3.fromValues(lightDir[0], lightDir[1], lightDir[2]),
-          )
-          const ndotl = Math.max(
-            0,
-            nrm[0] * -L[0] + nrm[1] * -L[1] + nrm[2] * -L[2],
-          )
-          const lit = ambient + (1 - ambient) * ndotl
+          let r: number
+          let g: number
+          let b: number
 
-          let r = baseColor[0] * lit
-          let g = baseColor[1] * lit
-          let b = baseColor[2] * lit
+          if (usePhysicalLights) {
+            const [wx, wy, wz] = this.perspInterp(wps!, invW, [l0, l1, l2]) as [
+              number,
+              number,
+              number,
+            ]
+            const lit = computePhysicalLighting({
+              baseColor: [baseColor[0], baseColor[1], baseColor[2]],
+              normal: nrm,
+              worldPos: [wx, wy, wz],
+              camPos: camPos!,
+              metalness: material.metallicFactor ?? 1,
+              roughness: material.roughnessFactor ?? 1,
+              ambientColor: light.ambientColor,
+              directionalLights,
+              hemisphere,
+            })
+            r = lit[0]
+            g = lit[1]
+            b = lit[2]
+          } else {
+            const lightDir = light.dir ?? DEFAULT_LIGHT_DIR
+            const ambient = clamp(
+              light.ambient ?? DEFAULT_RENDER_OPTIONS.ambient,
+              0,
+              1,
+            )
+            const L = vec3.normalize(
+              vec3.create(),
+              vec3.fromValues(lightDir[0], lightDir[1], lightDir[2]),
+            )
+            const ndotl = Math.max(
+              0,
+              nrm[0] * -L[0] + nrm[1] * -L[1] + nrm[2] * -L[2],
+            )
+            const lit = ambient + (1 - ambient) * ndotl
+            r = baseColor[0] * lit
+            g = baseColor[1] * lit
+            b = baseColor[2] * lit
+          }
+
           let a = baseColor[3]
 
           // Handle material transparency
@@ -517,7 +611,16 @@ export class SoftwareRenderer {
             depth[di] = z01
           }
 
-          // Convert to sRGB if needed
+          // Tone mapping is applied in linear space regardless of the output
+          // encoding (three.js tonemapping_fragment.glsl.js), then encoded.
+          const toneMapping = light.toneMapping ?? "none"
+          const exposure = light.exposure ?? 1
+          if (toneMapping === "aces") {
+            const [tr, tg, tb] = acesFilmicToneMapping([r, g, b], exposure)
+            r = tr
+            g = tg
+            b = tb
+          }
           if (gammaOut) {
             r = srgbEncodeLinear01(clamp(r, 0, 1))
             g = srgbEncodeLinear01(clamp(g, 0, 1))

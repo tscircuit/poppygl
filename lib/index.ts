@@ -38,6 +38,14 @@ export type {
   LineRenderOptions,
 } from "./render/SoftwareRenderer"
 export { drawInfiniteGrid } from "./render/drawInfiniteGrid"
+export {
+  CAD_VIEWER_LIGHTS,
+  type CADViewerLights,
+  type DirectionalLightSettings,
+  type HemisphereLightSettings,
+} from "./render/lights-presets"
+export { srgbDecodeLinear01 } from "./utils/srgbDecodeLinear01"
+export { acesFilmicToneMapping } from "./utils/aces"
 
 export { createUint8Bitmap } from "./image/createUint8Bitmap"
 export type {

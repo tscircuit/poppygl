@@ -1,6 +1,6 @@
 import { mat4 } from "gl-matrix"
 import type { BitmapLike } from "../image/createUint8Bitmap"
-import type { GLTFResources, GLTFScene, DrawCall, Material } from "./types"
+import type { DrawCall, GLTFResources, GLTFScene, Material } from "./types"
 
 const COMPONENT_INFO = {
   5120: {
@@ -298,11 +298,18 @@ function getMaterial(
   const alphaCutoff =
     typeof material.alphaCutoff === "number" ? material.alphaCutoff : 0.5
 
+  const metallicFactor =
+    typeof pbr.metallicFactor === "number" ? pbr.metallicFactor : 1
+  const roughnessFactor =
+    typeof pbr.roughnessFactor === "number" ? pbr.roughnessFactor : 1
+
   return {
     baseColorFactor: factor,
     baseColorTexture: texImg,
     alphaMode,
     alphaCutoff,
+    metallicFactor,
+    roughnessFactor,
   }
 }
 
