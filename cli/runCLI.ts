@@ -13,7 +13,7 @@ export async function runCLI() {
   const argv = parseCliArgs(process.argv.slice(2))
   if (argv._.length === 0) {
     console.error(
-      "Usage: poppygl model.gltf [--out out.png] [--w 960] [--h 540] [--fov 60] [--supersampling 2]",
+      "Usage: poppygl model.gltf [--out out.png] [--w 960] [--h 540] [--fov 60] [--supersampling 2] [--wireframe]",
     )
     process.exit(1)
   }
@@ -57,6 +57,7 @@ export async function runCLI() {
     Number.isFinite(supersamplingParsed) && supersamplingParsed > 0
       ? supersamplingParsed
       : DEFAULT_RENDER_OPTIONS.supersampling
+  const renderMode = argv.wireframe ? "wireframe" : "solid"
 
   await renderGLTFToPNGFile(gltfPath, outPath, {
     width,
@@ -69,6 +70,7 @@ export async function runCLI() {
     cull,
     gamma,
     supersampling,
+    renderMode,
   })
   console.log(`Wrote ${outPath} (${width}x${height})`)
 }

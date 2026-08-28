@@ -128,6 +128,8 @@ export function renderDrawCalls(
     for (const dc of dcs) {
       if (dc.mode === 1) {
         renderer.drawLines(dc, camera, options.gamma)
+      } else if (options.renderMode === "wireframe") {
+        renderer.drawMeshWireframe(dc, camera, options.gamma)
       } else {
         renderer.drawMesh(
           dc,

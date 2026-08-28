@@ -44,6 +44,7 @@ export interface RenderOptions {
   width: number
   height: number
   supersampling: number
+  renderMode: "solid" | "wireframe"
   fov: number
   cull: boolean
   gamma: boolean
@@ -67,6 +68,7 @@ export const DEFAULT_RENDER_OPTIONS: RenderOptions = {
   width: 800,
   height: 600,
   supersampling: 1,
+  renderMode: "solid",
   fov: 60,
   cull: true,
   gamma: true,

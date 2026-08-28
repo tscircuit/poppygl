@@ -4,17 +4,17 @@ import { computeSmoothNormals } from "../gltf/computeSmoothNormals"
 import type { DrawCall, Material } from "../gltf/types"
 import {
   type BitmapLike,
+  createUint8Bitmap,
   type ImageFactory,
   type MutableRGBA,
-  createUint8Bitmap,
 } from "../image/createUint8Bitmap"
+import { clamp } from "../utils/clamp"
+import { mulColor } from "../utils/mulColor"
+import { srgbEncodeLinear01 } from "../utils/srgbEncodeLinear01"
 import {
   DEFAULT_LIGHT_DIR,
   DEFAULT_RENDER_OPTIONS,
 } from "./getDefaultRenderOptions"
-import { mulColor } from "../utils/mulColor"
-import { srgbEncodeLinear01 } from "../utils/srgbEncodeLinear01"
-import { clamp } from "../utils/clamp"
 
 export interface LightSettings {
   dir: readonly [number, number, number]
@@ -246,6 +246,37 @@ export class SoftwareRenderer {
         z += zinc
       }
     }
+  }
+
+  drawMeshWireframe(mesh: DrawCall, camera: Camera, gammaOut = true) {
+    const vertexCount = (mesh.positions.length / 3) | 0
+    const sourceIndices =
+      mesh.indices ??
+      (() => {
+        const generated = new Uint32Array(vertexCount)
+        for (let i = 0; i < vertexCount; i += 1) generated[i] = i
+        return generated
+      })()
+    const edgeIndices: number[] = []
+
+    for (let i = 0; i + 2 < sourceIndices.length; i += 3) {
+      const i0 = sourceIndices[i + 0]!
+      const i1 = sourceIndices[i + 1]!
+      const i2 = sourceIndices[i + 2]!
+      edgeIndices.push(i0, i1, i1, i2, i2, i0)
+    }
+
+    if (edgeIndices.length === 0) return
+
+    this.drawLines(
+      {
+        ...mesh,
+        indices: new Uint32Array(edgeIndices),
+        mode: 1,
+      },
+      camera,
+      gammaOut,
+    )
   }
 
   sampleTextureNearest(
@@ -496,7 +527,7 @@ export class SoftwareRenderer {
           let r = baseColor[0] * lit
           let g = baseColor[1] * lit
           let b = baseColor[2] * lit
-          let a = baseColor[3]
+          const a = baseColor[3]
 
           // Handle material transparency
           const alphaMode = material.alphaMode ?? "OPAQUE"
