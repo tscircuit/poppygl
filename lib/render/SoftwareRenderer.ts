@@ -14,6 +14,7 @@ import {
 } from "./getDefaultRenderOptions"
 import { mulColor } from "../utils/mulColor"
 import { srgbEncodeLinear01 } from "../utils/srgbEncodeLinear01"
+import { srgbDecodeToLinear01 } from "../utils/srgbDecodeToLinear01"
 import { clamp } from "../utils/clamp"
 
 export interface LightSettings {
@@ -450,7 +451,14 @@ export class SoftwareRenderer {
               uvp[0]!,
               uvp[1]!,
             )
-            baseColor = mulColor(baseColor, texel)
+            // glTF base-color textures store sRGB RGB and linear alpha.
+            // Decode before multiplying by the linear material factor and lighting.
+            baseColor = mulColor(baseColor, [
+              srgbDecodeToLinear01(texel[0]),
+              srgbDecodeToLinear01(texel[1]),
+              srgbDecodeToLinear01(texel[2]),
+              texel[3],
+            ])
           }
 
           const [cr, cg, cb] = this.perspInterp(cs, invW, [l0, l1, l2]) as [
