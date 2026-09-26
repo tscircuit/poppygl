@@ -1,5 +1,6 @@
 import { mat4 } from "gl-matrix"
 import type { BitmapLike } from "../image/createUint8Bitmap"
+import { triangleListIndices } from "./expandTriangleIndices"
 import type { GLTFResources, GLTFScene, DrawCall, Material } from "./types"
 
 const COMPONENT_INFO = {
@@ -331,7 +332,6 @@ export function createSceneFromGLTF(
       const mesh = meshes[node.mesh]
       if (mesh) {
         for (const primitive of mesh.primitives || []) {
-          if (primitive.mode != null && primitive.mode !== 4) continue
           const posAcc = primitive.attributes?.POSITION
           if (posAcc == null) continue
           const normalsAcc = primitive.attributes?.NORMAL
@@ -341,10 +341,17 @@ export function createSceneFromGLTF(
           const normals =
             normalsAcc != null ? readAccessorAsFloat32(ctx, normalsAcc) : null
           const uvs = uvAcc != null ? readAccessorAsFloat32(ctx, uvAcc) : null
-          const indices =
+          const rawIndices =
             primitive.indices != null
               ? readIndices(ctx, primitive.indices)
               : null
+          const indices = triangleListIndices(
+            primitive.mode,
+            rawIndices,
+            Math.floor(positions.length / 3),
+          )
+          if (indices === undefined) continue
+          if (indices !== null && indices.length < 3) continue
 
           const colorAcc = primitive.attributes?.COLOR_0
           const colors =
