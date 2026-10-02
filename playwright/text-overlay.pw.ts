@@ -47,6 +47,9 @@ test("message pixels remain fixed while the interactive viewer orbits", async ({
       }
     })
   const first = await pixels()
+  await canvas.screenshot({
+    path: test.info().outputPath("overlay-before-orbit.png"),
+  })
   const bounds = (await canvas.boundingBox())!
   await page.mouse.move(bounds.x + 400, bounds.y + 200)
   await page.mouse.down()
@@ -56,4 +59,7 @@ test("message pixels remain fixed while the interactive viewer orbits", async ({
     .poll(async () => JSON.stringify((await pixels()).circuit))
     .not.toBe(JSON.stringify(first.circuit))
   expect((await pixels()).footer).toEqual(first.footer)
+  await canvas.screenshot({
+    path: test.info().outputPath("overlay-after-orbit.png"),
+  })
 })
