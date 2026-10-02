@@ -6,7 +6,7 @@ import {
 } from "../gltf/loadGLTFWithResourcesFromURL"
 import { createUint8Bitmap } from "../image/createUint8Bitmap"
 import type { RenderOptionsInput } from "./getDefaultRenderOptions"
-import { renderDrawCalls } from "./renderDrawCalls"
+import { renderSceneFromGLTF } from "./renderSceneFromGLTF"
 
 export interface RenderGLTFToPNGFromURLOptions
   extends RenderOptionsInput,
@@ -21,8 +21,8 @@ export async function renderGLTFToPNGFromURL(
     fetchImpl,
   })
   const scene = createSceneFromGLTF(gltf, resources)
-  const { bitmap } = renderDrawCalls(
-    scene.drawCalls,
+  const { bitmap } = renderSceneFromGLTF(
+    scene,
     renderOptions,
     createUint8Bitmap,
   )

@@ -2,6 +2,12 @@ import type { GridOptions } from "../gltf/types"
 
 export const DEFAULT_LIGHT_DIR = [-0.4, -0.9, -0.2] as const
 
+/** A fixed screen message panel. Text and dimensions do not use world units. */
+export interface TextOverlay {
+  title?: string
+  messages: string[]
+}
+
 export interface DebugPoint {
   label: string
   position: {
@@ -55,6 +61,8 @@ export interface RenderOptions {
   cameraRotation: CameraRotation | null
   backgroundColor?: readonly [number, number, number] | string | null
   grid?: boolean | GridOptions
+  /** Undefined inherits selected glTF scene metadata; null hides the panel. */
+  textOverlay?: TextOverlay | null
   debugPoints?: DebugPoint[] | null
   debugFontSize?: number | null
   debugPointColor?: readonly [number, number, number] | null

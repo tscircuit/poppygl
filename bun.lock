@@ -5,6 +5,7 @@
     "": {
       "name": "poppygl",
       "dependencies": {
+        "@tscircuit/alphabet": "0.0.23",
         "fast-png": "^8.0.0",
         "gl-matrix": "^3.4.4",
         "pureimage": "^0.4.18",
@@ -13,7 +14,6 @@
       "devDependencies": {
         "@biomejs/biome": "^2.2.4",
         "@playwright/test": "^1.60.0",
-        "@tscircuit/alphabet": "0.0.23",
         "@types/bun": "^1.2.23",
         "@types/readable-stream": "^4.0.21",
         "looks-same": "^10.0.1",

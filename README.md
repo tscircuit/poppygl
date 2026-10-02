@@ -55,6 +55,7 @@ const png = await renderGLTFToPNGFromGLB(glb, {
 - `camPos` and `lookAt`: override the auto-framed camera position and target.
 - `up`: choose the world-up axis for the camera with `"y+" | "y-" | "x+" | "x-" | "z+" | "z-"`.
 - `cameraRotation`: apply Euler degrees `{ x, y, z }` to define camera orientation directly. When set, it takes precedence over `lookAt`.
+- `textOverlay`: optional `{ title?: string, messages: string[] }` panel fixed to the bottom of the image. Text wraps at a fixed pixel font size and stays readable as the camera orbits. Set `null` to hide embedded text.
 - `debugPoints`: optional `{ label, position }[]` overlay rendered on top of the final PNG for world-space debugging markers.
 - `debugFontSize`: optional pixel size for `debugPoints` labels; when omitted the renderer derives a size from the image dimensions.
 - `debugPointColor`: optional RGB tuple for debug point markers.
@@ -66,6 +67,39 @@ const png = await renderGLTFToPNGFromGLB(glb, {
 - `fetchImpl`: optional override for resource loading (must match the `fetch` signature).
 
 You can inspect the defaults via `getDefaultRenderOptions()` or reuse the internal merge logic with `resolveRenderOptions()`.
+
+### Screen text stored in glTF
+
+Embed a message panel in the selected glTF scene's extras:
+
+```json
+{
+  "scene": 0,
+  "scenes": [{
+    "nodes": [0],
+    "extras": {
+      "poppygl": {
+        "textOverlay": {
+          "title": "Messages",
+          "messages": ["A full message that remains readable while the model rotates."]
+        }
+      }
+    }
+  }]
+}
+```
+
+`renderSceneFromGLTF`, the GLB/URL helpers, and the interactive viewer render this
+panel automatically. A supplied `textOverlay` overrides the embedded panel;
+`textOverlay: null` suppresses it. Undefined follows the selected scene, including
+when passing `getDefaultRenderOptions()` or `resolveRenderOptions()`.
+
+The panel does not change scene geometry, bounds, or camera framing. Its font size
+is unchanged by supersampling. Messages wrap, including multiline text and long
+words. Characters unavailable in the portable font appear as Unicode escapes;
+the original strings remain in metadata. If the output cannot fit every wrapped
+line, the final line states how many more lines remain. Increase image height to
+show them. Absent or malformed metadata leaves existing rendering unchanged.
 
 ### Hidden edges for selected sub-models
 

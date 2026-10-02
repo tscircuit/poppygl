@@ -4,7 +4,7 @@ import { bufferFromDataURI, decodeImageFromBuffer } from "../gltf/resourceUtils"
 import { encodePNGToBuffer } from "../image/encodePNGToBuffer"
 import { pureImageFactory } from "../image/pureImageFactory"
 import type { RenderOptionsInput } from "./getDefaultRenderOptions"
-import { renderDrawCalls } from "./renderDrawCalls"
+import { renderSceneFromGLTF } from "./renderSceneFromGLTF"
 
 export type RenderGLTFToPNGBufferFromGLBBufferOptions = RenderOptionsInput
 
@@ -91,6 +91,6 @@ export async function renderGLTFToPNGBufferFromGLBBuffer(
   )
 
   const scene = createSceneFromGLTF(gltf, { buffers, images })
-  const { bitmap } = renderDrawCalls(scene.drawCalls, options, pureImageFactory)
+  const { bitmap } = renderSceneFromGLTF(scene, options, pureImageFactory)
   return encodePNGToBuffer(bitmap)
 }

@@ -9,6 +9,9 @@ import {
   computeWorldAABB,
   createSceneFromGLTF,
   renderDrawCalls,
+  renderSceneFromGLTF,
+  type GLTFScene,
+  type RenderOptionsInput,
   type BitmapLike,
   type DrawCall,
 } from "../../lib"
@@ -28,6 +31,7 @@ interface OrbitState {
 }
 
 interface SceneState {
+  gltfScene?: GLTFScene
   drawCalls: DrawCall[]
   center: readonly [number, number, number]
   radius: number
@@ -308,6 +312,7 @@ export const PoppyGlViewer: React.FC<PoppyGlViewerProps> = ({
           const { center, radius } = extractSceneBounds(scene.drawCalls)
           if (!cancelled) {
             setSceneState({
+              gltfScene: scene,
               drawCalls: scene.drawCalls,
               center,
               radius,
@@ -365,7 +370,7 @@ export const PoppyGlViewer: React.FC<PoppyGlViewerProps> = ({
       sceneState.radius,
       orbit,
     )
-    const renderResult = renderDrawCalls(sceneState.drawCalls, {
+    const renderOptions: RenderOptionsInput = {
       width: resolvedWidth,
       height: resolvedHeight,
       camPos,
@@ -373,7 +378,10 @@ export const PoppyGlViewer: React.FC<PoppyGlViewerProps> = ({
       ambient: sceneState.isImage ? 1 : undefined,
       lightDir: sceneState.isImage ? [0, 0, 1] : undefined,
       cull: sceneState.isImage ? false : undefined,
-    })
+    }
+    const renderResult = sceneState.gltfScene
+      ? renderSceneFromGLTF(sceneState.gltfScene, renderOptions)
+      : renderDrawCalls(sceneState.drawCalls, renderOptions)
 
     const srcData =
       renderResult.bitmap.data instanceof Uint8ClampedArray

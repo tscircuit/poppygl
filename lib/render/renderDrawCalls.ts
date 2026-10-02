@@ -7,6 +7,7 @@ import type { BitmapLike, ImageFactory } from "../image/createUint8Bitmap"
 import { createUint8Bitmap } from "../image/createUint8Bitmap"
 import { downsampleBitmap } from "./downsampleBitmap"
 import { drawDebugPoints } from "./drawDebugPoints"
+import { drawTextOverlay } from "./drawTextOverlay"
 import { drawInfiniteGrid } from "./drawInfiniteGrid"
 import {
   hexToRgb,
@@ -210,6 +211,10 @@ export function renderDrawCalls(
           imageFactory,
         )
       : renderer.bitmap
+
+  // Draw screen text at the final pixel resolution so supersampling changes
+  // circuit edges without shrinking the message font.
+  if (options.textOverlay) drawTextOverlay(bitmap, options.textOverlay)
 
   return { bitmap, camera, options }
 }
