@@ -80,6 +80,7 @@ async function toMatchPngSnapshot(
     }
   }
 
+  fs.writeFileSync(filePath.replace(/\.snap\.png$/, ".actual.png"), received)
   const diffPath = filePath.replace(/\.snap\.png$/, ".diff.png")
   await looksSame.createDiff({
     reference: Buffer.from(existingSnapshot),
