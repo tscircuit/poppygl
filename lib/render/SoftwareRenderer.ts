@@ -16,6 +16,7 @@ import { mulColor } from "../utils/mulColor"
 import { srgbEncodeLinear01 } from "../utils/srgbEncodeLinear01"
 import { srgbDecodeToLinear01 } from "../utils/srgbDecodeToLinear01"
 import { clamp } from "../utils/clamp"
+import { clipMeshToNearPlane } from "./clipMeshToNearPlane"
 
 export interface LightSettings {
   dir: readonly [number, number, number]
@@ -292,7 +293,7 @@ export class SoftwareRenderer {
     cullBackFaces = true,
     gammaOut = true,
   ) {
-    const { positions, normals, uvs, indices, model, colors } = mesh
+    let { positions, normals, uvs, indices, model, colors } = mesh
 
     const view = camera.view
     const proj = camera.proj
@@ -302,8 +303,8 @@ export class SoftwareRenderer {
     const normalMat = mat3.create()
     mat3.normalFromMat4(normalMat, model)
 
-    const vertexCount = (positions.length / 3) | 0
-    const idx =
+    let vertexCount = (positions.length / 3) | 0
+    let idx =
       indices ??
       (() => {
         const a = new Uint32Array(vertexCount)
@@ -315,6 +316,17 @@ export class SoftwareRenderer {
     if (!useNormals) {
       useNormals = computeSmoothNormals(positions, idx)
     }
+
+    const clipped = clipMeshToNearPlane(
+      { ...mesh, normals: useNormals, indices: idx },
+      mvp,
+    )
+    positions = clipped.positions
+    useNormals = clipped.normals!
+    uvs = clipped.uvs
+    colors = clipped.colors
+    idx = clipped.indices!
+    vertexCount = positions.length / 3
 
     const vScreen = new Array<[number, number]>(vertexCount)
     const vInvW = new Float32Array(vertexCount)
