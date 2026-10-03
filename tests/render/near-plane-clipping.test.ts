@@ -4,13 +4,17 @@ import type { DrawCall, Material } from "../../lib/gltf/types"
 import { encodePNG } from "../../lib/image/encodePNG"
 import { SoftwareRenderer } from "../../lib/render/SoftwareRenderer"
 import "../fixtures/preload"
+import {
+  annotateClipping,
+  clippingComparison,
+} from "../fixtures/annotate-clipping"
 
 const material: Material = {
   baseColorFactor: [1, 1, 1, 1],
   baseColorTexture: null,
 }
 const camera = {
-  view: mat4.create(),
+  view: mat4.lookAt(mat4.create(), [0, 5, -5], [0, 0, 0], [0, 1, 0]),
   proj: mat4.perspective(mat4.create(), Math.PI / 2, 1, 1, 20),
 }
 
@@ -25,12 +29,12 @@ function mesh(positions: number[], indices: number[]): DrawCall {
   }
 }
 
-// A green board in front of the camera, plus a blue display extending from
-// z=-3 to z=+3. The display crosses behind the eye but never covers the board.
+// A green PCB at y=0, plus a blue display beside it at y=0.1.
+// The display extends toward and behind the camera, never above the PCB.
 // This is the small equivalent of the Muse e-paper thumbnail failure.
 function renderPanelScene(preclipped: boolean) {
-  const renderer = new SoftwareRenderer(128, 128)
-  renderer.clear([0, 0, 0, 255])
+  const renderer = new SoftwareRenderer(512, 512)
+  renderer.clear([237, 242, 248, 255])
   const draw = (geometry: DrawCall, color: Material["baseColorFactor"]) =>
     renderer.drawMesh(
       geometry,
@@ -41,40 +45,61 @@ function renderPanelScene(preclipped: boolean) {
       false,
     )
   draw(
-    mesh([-2, -1, -4, 2, -1, -4, 2, 2, -4, -2, 2, -4], [0, 1, 2, 0, 2, 3]),
-    [0, 0.6, 0.2, 1],
-  )
-  const endZ = preclipped ? -1 : 3 // perspective near plane is z=-1
-  draw(
     mesh(
-      [-6, -1, -3, 6, -1, -3, 6, -1, endZ, -6, -1, endZ],
+      [-2.5, 0, -2.5, 2.5, 0, -2.5, 2.5, 0, 2.5, -2.5, 0, 2.5],
       [0, 2, 1, 0, 3, 2],
     ),
-    [0.1, 0.3, 0.4, 1],
+    [0.15, 1, 0.3, 1],
+  )
+  // Camera depth on y=0.1 is (z + 9.9) / sqrt(2); near depth is 1.
+  const endZ = preclipped ? Math.SQRT2 - 9.9 : -15
+  draw(
+    mesh(
+      [-8, 0.1, -4, 8, 0.1, -4, 8, 0.1, endZ, -8, 0.1, endZ],
+      [0, 2, 1, 0, 3, 2, 0, 1, 2, 0, 2, 3],
+    ),
+    [0.25, 0.6, 1, 1],
   )
   return renderer
 }
 
-function png(renderer: SoftwareRenderer) {
-  return encodePNG({
-    width: renderer.width,
-    height: renderer.height,
-    data: renderer.buffer,
-  })
-}
-
 test("a panel crossing behind the eye preserves the board and the visible panel", async () => {
-  // The oracle is a manually shortened rectangle, not renderer clipping code.
+  // The manually shortened panel is an independent oracle. Snapshot the actual
+  // output separately so the fix produces a visible image change in GitHub.
   const expected = renderPanelScene(true)
-  await expect(await png(expected)).toMatchPngSnapshot(import.meta.path)
   const actual = renderPanelScene(false)
-  await expect(await png(actual)).toMatchPngSnapshot(import.meta.path)
+  await expect(
+    await encodePNG(
+      annotateClipping(
+        expected.bitmap,
+        "EXPECTED",
+        "DISPLAY CLIPPED BY HAND AT NEAR PLANE",
+        true,
+      ),
+    ),
+  ).toMatchPngSnapshot(import.meta.path, "near-plane-expected")
+  await expect(
+    await encodePNG(
+      annotateClipping(
+        actual.bitmap,
+        "ACTUAL RENDER",
+        "DISPLAY EXTENDS BEHIND THE CAMERA",
+        true,
+      ),
+    ),
+  ).toMatchPngSnapshot(import.meta.path, "near-plane-actual")
+  await expect(
+    await encodePNG(clippingComparison(expected.bitmap, actual.bitmap)),
+  ).toMatchPngSnapshot(import.meta.path, "near-plane-comparison")
+  // These assertions intentionally fail on the regression branch even after
+  // recording its broken actual-render snapshot.
   expect([
-    ...actual.buffer.slice((48 * 128 + 64) * 4, (48 * 128 + 64) * 4 + 4),
-  ]).toEqual([0, 153, 51, 255])
+    ...actual.buffer.slice((256 * 512 + 256) * 4, (256 * 512 + 256) * 4 + 4),
+  ]).toEqual([38, 255, 76, 255])
   expect([
-    ...actual.buffer.slice((110 * 128 + 64) * 4, (110 * 128 + 64) * 4 + 4),
-  ]).toEqual([25, 76, 102, 255])
+    ...actual.buffer.slice((480 * 512 + 256) * 4, (480 * 512 + 256) * 4 + 4),
+  ]).toEqual([63, 153, 255, 255])
+  expect(actual.buffer).toEqual(expected.buffer)
 })
 
 // Coordinates below are intersections computed by hand with z=-1. Attributes

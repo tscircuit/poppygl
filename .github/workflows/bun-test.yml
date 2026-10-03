@@ -29,3 +29,14 @@ jobs:
 
       - name: Run tests
         run: bun test
+
+      - name: Upload visual snapshots and differences
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-snapshots
+          path: |
+            tests/**/__snapshots__/*.snap.png
+            tests/**/__snapshots__/*.actual.png
+            tests/**/__snapshots__/*.diff.png
+          if-no-files-found: ignore
