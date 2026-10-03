@@ -40,3 +40,4 @@ out.png
 .aider*
 
 *.diff.png
+*.actual.png
