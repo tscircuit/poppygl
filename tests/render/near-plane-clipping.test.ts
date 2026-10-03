@@ -143,8 +143,8 @@ function renderAttributedTriangle(
   indices: number[] | null,
   transformed = false,
 ) {
-  const renderer = new SoftwareRenderer(128, 128)
-  renderer.clear([12, 15, 20, 255])
+  const renderer = new SoftwareRenderer(512, 512)
+  renderer.clear([237, 242, 248, 255])
   const geometry = mesh(positions, indices ?? [])
   if (indices === null) geometry.indices = null
   geometry.normals = new Float32Array(
@@ -179,7 +179,7 @@ function renderAttributedTriangle(
   renderer.drawMesh(
     geometry,
     { ...camera, view },
-    { dir: [0, 0, -1], ambient: 0.2 },
+    { dir: [0, 0, -1], ambient: 0.8 },
     textureMaterial,
     true,
     false,
@@ -192,20 +192,30 @@ for (const fixture of cases) {
     const expected = renderAttributedTriangle(fixture.clipped, fixture.indices)
     if (fixture.clipped.length) {
       const drawnPixels = Array.from(expected.buffer).filter(
-        (value, i) => i % 4 === 0 && value !== 12,
+        (value, i) => i % 4 === 0 && value !== 237,
       ).length
       expect(drawnPixels).toBeGreaterThan(32)
     }
-    await expect(await png(expected)).toMatchPngSnapshot(
-      import.meta.path,
-      fixture.name,
-    )
+    await expect(
+      await encodePNG(
+        annotateClipping(
+          expected.bitmap,
+          fixture.name.replaceAll("-", " "),
+          "VISIBLE TRIANGLE MUST MATCH THE REFERENCE",
+        ),
+      ),
+    ).toMatchPngSnapshot(import.meta.path, fixture.name)
     // Exercise non-indexed meshes and a non-identity model/view transform.
     const actual = renderAttributedTriangle(fixture.original, null, true)
-    await expect(await png(actual)).toMatchPngSnapshot(
-      import.meta.path,
-      fixture.name,
-    )
+    await expect(
+      await encodePNG(
+        annotateClipping(
+          actual.bitmap,
+          fixture.name.replaceAll("-", " "),
+          "VISIBLE TRIANGLE MUST MATCH THE REFERENCE",
+        ),
+      ),
+    ).toMatchPngSnapshot(import.meta.path, fixture.name)
     let maxDifference = 0
     for (let i = 0; i < actual.buffer.length; i++) {
       maxDifference = Math.max(
