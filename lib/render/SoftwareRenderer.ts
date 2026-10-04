@@ -17,6 +17,8 @@ import { srgbEncodeLinear01 } from "../utils/srgbEncodeLinear01"
 import { srgbDecodeToLinear01 } from "../utils/srgbDecodeToLinear01"
 import { clamp } from "../utils/clamp"
 import { clipMeshToNearPlane } from "./clipMeshToNearPlane"
+import type { StudioLighting } from "./StudioLighting"
+import { GeometryDenoiser } from "./GeometryDenoiser"
 
 export interface LightSettings {
   dir: readonly [number, number, number]
@@ -37,16 +39,19 @@ export class SoftwareRenderer {
   readonly height: number
   readonly bitmap: BitmapLike
   readonly depth: Float32Array
+  private readonly denoiser: GeometryDenoiser | null
 
   constructor(
     width: number,
     height: number,
     imageFactory: ImageFactory = createUint8Bitmap,
+    denoise = false,
   ) {
     this.width = width
     this.height = height
     this.bitmap = imageFactory(width, height)
     this.depth = new Float32Array(width * height)
+    this.denoiser = denoise ? new GeometryDenoiser(width, height) : null
   }
 
   get buffer() {
@@ -54,6 +59,7 @@ export class SoftwareRenderer {
   }
 
   clear(colorRGBA: [number, number, number, number] = [0, 0, 0, 255]) {
+    this.denoiser?.ids.fill(0)
     const [r, g, b, a] = colorRGBA
     for (let i = 0; i < this.width * this.height; i++) {
       const j = i * 4
@@ -65,13 +71,26 @@ export class SoftwareRenderer {
     }
   }
 
-  setPixel(x: number, y: number, r: number, g: number, b: number, a: number) {
+  setPixel(
+    x: number,
+    y: number,
+    r: number,
+    g: number,
+    b: number,
+    a: number,
+    keepGuide = false,
+  ) {
     if (x < 0 || y < 0 || x >= this.width || y >= this.height) return
     const idx = (y * this.width + x) * 4
+    if (this.denoiser && !keepGuide) this.denoiser.ids[y * this.width + x] = 0
     this.buffer[idx + 0] = r
     this.buffer[idx + 1] = g
     this.buffer[idx + 2] = b
     this.buffer[idx + 3] = a
+  }
+
+  denoise(gammaOut = true) {
+    this.denoiser?.apply(this.buffer, gammaOut)
   }
 
   drawLines(
@@ -292,8 +311,10 @@ export class SoftwareRenderer {
     material: Material,
     cullBackFaces = true,
     gammaOut = true,
+    studio?: StudioLighting,
   ) {
     let { positions, normals, uvs, indices, model, colors } = mesh
+    const materialId = this.denoiser?.materialId(material) ?? 0
 
     const view = camera.view
     const proj = camera.proj
@@ -332,6 +353,9 @@ export class SoftwareRenderer {
     const vInvW = new Float32Array(vertexCount)
     const vNDCz = new Float32Array(vertexCount)
     const vWorldN = new Array<[number, number, number]>(vertexCount)
+    const vWorldP = studio
+      ? new Array<[number, number, number]>(vertexCount)
+      : null
     const vColor = new Array<[number, number, number]>(vertexCount)
 
     for (let i = 0; i < vertexCount; i++) {
@@ -343,6 +367,10 @@ export class SoftwareRenderer {
       )
       const c = vec4.create()
       vec4.transformMat4(c, p, mvp)
+      if (vWorldP) {
+        const world = vec4.transformMat4(vec4.create(), p, model)
+        vWorldP[i] = [world[0], world[1], world[2]]
+      }
       const invW = 1 / c[3]
       const ndcX = c[0] * invW
       const ndcY = c[1] * invW
@@ -415,6 +443,9 @@ export class SoftwareRenderer {
         vWorldN[i1]!,
         vWorldN[i2]!,
       ]
+      const worldPositions = vWorldP
+        ? [vWorldP[i0]!, vWorldP[i1]!, vWorldP[i2]!]
+        : null
       const uv: [number, number][] | null = uvs
         ? [
             [uvs[i0 * 2 + 0]!, uvs[i0 * 2 + 1]!],
@@ -516,7 +547,26 @@ export class SoftwareRenderer {
           let r = baseColor[0] * lit
           let g = baseColor[1] * lit
           let b = baseColor[2] * lit
+          if (studio && worldPositions) {
+            const position = this.perspInterp(worldPositions, invW, [
+              l0,
+              l1,
+              l2,
+            ]) as [number, number, number]
+            ;[r, g, b] = studio.shade(
+              position,
+              nrm,
+              [baseColor[0], baseColor[1], baseColor[2]],
+              material,
+              di,
+            )
+          }
           let a = baseColor[3]
+          // Keep scalar guides until the realistic-only denoising path needs
+          // them, so regular rendering does not allocate a tuple per pixel.
+          const linearR = r,
+            linearG = g,
+            linearB = b
 
           // Handle material transparency
           const alphaMode = material.alphaMode ?? "OPAQUE"
@@ -574,7 +624,21 @@ export class SoftwareRenderer {
             (clamp(outG, 0, 1) * 255) | 0,
             (clamp(outB, 0, 1) * 255) | 0,
             (clamp(outA, 0, 1) * 255) | 0,
+            true,
           )
+          if (this.denoiser) {
+            if (alphaMode !== "BLEND") {
+              const distance = 1 / (l0 * invW[0] + l1 * invW[1] + l2 * invW[2])
+              this.denoiser.record(
+                di,
+                materialId,
+                nrm,
+                [baseColor[0], baseColor[1], baseColor[2]],
+                [linearR, linearG, linearB],
+                distance,
+              )
+            } else this.denoiser.ids[di] = 0
+          }
         }
       }
     }

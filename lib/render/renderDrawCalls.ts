@@ -15,6 +15,7 @@ import {
 } from "./getDefaultRenderOptions"
 import { resolveRenderOptions } from "./resolveRenderOptions"
 import { SoftwareRenderer } from "./SoftwareRenderer"
+import { StudioLighting } from "./StudioLighting"
 
 export interface RenderResult {
   bitmap: BitmapLike
@@ -41,7 +42,12 @@ export function renderDrawCalls(
     options.cameraRotation ?? null,
   )
 
-  const renderer = new SoftwareRenderer(renderWidth, renderHeight, imageFactory)
+  const renderer = new SoftwareRenderer(
+    renderWidth,
+    renderHeight,
+    imageFactory,
+    options.realistic,
+  )
 
   // Clear with background color (transparent by default)
   let rgb: readonly [number, number, number] | null = null
@@ -122,6 +128,9 @@ export function renderDrawCalls(
   const blendDraws = allDrawCalls.filter(
     (dc) => (dc.material.alphaMode ?? "OPAQUE") === "BLEND",
   )
+  const studio = options.realistic
+    ? new StudioLighting(allDrawCalls, camera)
+    : undefined
 
   // Helper to render groups
   const renderGroup = (dcs: DrawCall[]) => {
@@ -136,6 +145,7 @@ export function renderDrawCalls(
           dc.material,
           options.cull,
           options.gamma,
+          studio,
         )
       }
     }
@@ -169,6 +179,7 @@ export function renderDrawCalls(
   }
 
   renderGroup(blendDraws)
+  renderer.denoise(options.gamma)
 
   for (const dc of drawCalls) {
     if (!dc.showHiddenEdges) continue

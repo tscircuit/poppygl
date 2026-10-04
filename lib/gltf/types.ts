@@ -4,6 +4,8 @@ import type { BitmapLike } from "../image/createUint8Bitmap"
 export interface Material {
   baseColorFactor: [number, number, number, number]
   baseColorTexture: BitmapLike | null
+  metallicFactor?: number
+  roughnessFactor?: number
   alphaMode?: "OPAQUE" | "MASK" | "BLEND"
   alphaCutoff?: number
 }

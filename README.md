@@ -2,11 +2,20 @@
 
 Render GLTF files to PNG images in completely native JavaScript without WebGL/OpenGL.
 
-<img width="996" height="732" alt="image" src="https://github.com/user-attachments/assets/5cda4566-2637-440e-8956-dff87aedbc26" />
+![NEMA17: regular PoppyGL, realistic PoppyGL, and Blender Cycles reference](docs/images/nema17-comparison.png)
+
+Left to right: regular PoppyGL, PoppyGL with `realistic: true`, and a Blender
+Cycles reference. All three views use the same model, camera, and materials.
+
+## Install
+
+```sh
+npm install poppygl
+```
 
 ## Quick start
 
-Give poppygl a `.gltf` or `.glb` URL and it will fetch every referenced buffer/texture, rasterize the scene, and hand back a PNG buffer.
+Give poppygl a `.gltf` or `.glb` URL and it will fetch every referenced buffer/texture, rasterize the scene, and return the PNG as a `Uint8Array`.
 
 ```ts
 import { renderGLTFToPNGFromURL } from "poppygl"
@@ -28,7 +37,7 @@ await writeFile("DamagedHelmet.png", png)
 
 ## Render from an in-memory GLB buffer
 
-Already have the `.glb` bytes (for example, uploaded by a user or read from disk)? Send the buffer straight to `renderGLTFToPNGFromGLB` and receive the PNG output.
+Already have the `.glb` bytes (for example, uploaded by a user or read from disk)? Send the buffer straight to `renderGLTFToPNGFromGLB` and receive the PNG as a `Uint8Array`.
 
 ```ts
 import { readFile } from "node:fs/promises"
@@ -40,18 +49,75 @@ const png = await renderGLTFToPNGFromGLB(glb, {
   height: 768,
 })
 
-// write or return the PNG buffer
+await writeFile("DamagedHelmet.png", png)
 ```
 
 > This helper expects every referenced buffer/image to be embedded in the GLB (the usual single-file package). If the asset links out to external resources, load it with `renderGLTFToPNGFromURL` instead so poppygl can fetch the extras.
 
 ## Render options
 
+### Realistic studio rendering
+
+Pass `realistic: true` for studio lighting, metal reflections, and soft shadows.
+The default is `false`, which uses the faster diffuse renderer.
+
+```ts
+import { readFile, writeFile } from "node:fs/promises"
+import { renderGLTFToPNGFromGLB } from "poppygl"
+
+const glb = await readFile("motor.glb")
+const png = await renderGLTFToPNGFromGLB(glb, {
+  realistic: true,
+  width: 900,
+  height: 900,
+  supersampling: 2,
+})
+
+await writeFile("motor.png", png)
+```
+
+The same flag works with `renderGLTFToPNGFromURL`, `renderDrawCalls`, and
+`renderSceneFromGLTF`. Realistic mode uses a fixed studio lighting preset;
+`ambient` and `lightDir` apply to regular rendering. Camera, background, and
+output settings work in both modes. A floor must be included in your model
+if you want it to receive shadows.
+
+Realistic mode supports base-color textures and scalar glTF metallic/roughness
+values. Normal maps, metallic/roughness textures, and custom HDR environments
+are not yet supported. Transparent and alpha-cutout surfaces do not cast shadows.
+
+Use realistic mode for saved images. At 600×600 with 2× supersampling, example
+models took 21–39 seconds to render, compared with 0.6–1.6 seconds in regular
+mode on the same machine. Reduce resolution or supersampling for faster output;
+render times vary with model complexity and hardware.
+
+### Camera and background
+
+The camera automatically frames the model unless you specify `camPos` and
+`lookAt`. Set `up` to match your model's coordinate system:
+
+```ts
+const png = await renderGLTFToPNGFromGLB(glb, {
+  realistic: true,
+  width: 800,
+  height: 600,
+  camPos: [80, 60, 80],
+  lookAt: [0, 0, 0],
+  up: "y+",
+  fov: 45,
+  backgroundColor: "#e5e7eb",
+  grid: false,
+})
+```
+
+### Options
+
 `renderGLTFToPNGFromURL` accepts the same render options as the lower-level APIs:
 
-- `width`/`height` (default `512`): output resolution in pixels.
+- `realistic`: enable studio lighting, reflections, and soft shadows (default `false`).
+- `width`/`height`: output resolution in pixels (defaults `800`/`600`).
 - `supersampling`: render at `width * supersampling` / `height * supersampling`, then downsample (default `1`).
-- `fov`: vertical field of view in degrees (defaults to `35`).
+- `fov`: vertical field of view in degrees (default `60`).
 - `camPos` and `lookAt`: override the auto-framed camera position and target.
 - `up`: choose the world-up axis for the camera with `"y+" | "y-" | "x+" | "x-" | "z+" | "z-"`.
 - `cameraRotation`: apply Euler degrees `{ x, y, z }` to define camera orientation directly. When set, it takes precedence over `lookAt`.
@@ -59,10 +125,12 @@ const png = await renderGLTFToPNGFromGLB(glb, {
 - `debugFontSize`: optional pixel size for `debugPoints` labels; when omitted the renderer derives a size from the image dimensions.
 - `debugPointColor`: optional RGB tuple for debug point markers.
 - `debugLabelColor`: optional RGB tuple for debug point labels.
-- `lightDir`: normalized directional light vector (defaults to a top-right key light).
-- `ambient`: ambient lighting contribution (0–1, defaults to `0.2`).
-- `gamma`: gamma correction applied to the output (defaults to `2.2`).
-- `cull`: back-face culling mode (`"back"`, `"front"`, or `"none"`).
+- `lightDir`: directional light vector for regular mode (default `[-0.4, -0.9, -0.2]`).
+- `ambient`: ambient lighting contribution from 0 to 1 (default `0.15`; regular mode only).
+- `gamma`: enable gamma correction (default `true`).
+- `cull`: enable back-face culling (default `true`).
+- `backgroundColor`: a hex string such as `"#e5e7eb"`, or an RGB tuple with values from 0 to 1.
+- `grid`: show a ground grid (default `false`), or provide grid options.
 - `fetchImpl`: optional override for resource loading (must match the `fetch` signature).
 
 You can inspect the defaults via `getDefaultRenderOptions()` or reuse the internal merge logic with `resolveRenderOptions()`.

@@ -41,6 +41,8 @@ export function hexToRgb(hex: string): [number, number, number] | null {
 }
 
 export interface RenderOptions {
+  /** Opt into metallic/roughness studio lighting and geometry-based soft shadows. */
+  realistic: boolean
   width: number
   height: number
   supersampling: number
@@ -64,6 +66,7 @@ export interface RenderOptions {
 export type RenderOptionsInput = Partial<RenderOptions>
 
 export const DEFAULT_RENDER_OPTIONS: RenderOptions = {
+  realistic: false,
   width: 800,
   height: 600,
   supersampling: 1,
