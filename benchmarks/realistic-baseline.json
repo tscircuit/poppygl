@@ -1,0 +1,125 @@
+{
+  "metadata": {
+    "revision": "d4449328d92f5d35d001784e7b2ff24d1afffcd5",
+    "dirty": false,
+    "runtime": "1.3.2",
+    "platform": "darwin",
+    "arch": "arm64",
+    "size": 300,
+    "supersampling": 2,
+    "runs": 3,
+    "warmup": 1,
+    "timingScope": "renderDrawCalls + encodePNG; includes per-render setup, excludes loading",
+    "blenderReferenceSha256": "677a117f4cac6c677f216d922744a9cc938b5e3c7727ee28f400dba5bc09f178",
+    "environmentSha256": "dea1040a9d08e69a01cb00c77498ef7c6fa3565ce2536488ebbdf8c4476b2d76"
+  },
+  "results": [
+    {
+      "id": "arduino-uno",
+      "sourceSha256": "e84615d6046a30accfc72acb7efa523d825a733014f7580aa3893ff383feb1e4",
+      "options": {
+        "camPos": [75.87426592437491, 121.25883071467187, 98.414008482922],
+        "lookAt": [2.9750003814697266, 4.62000584602356, 0],
+        "up": "y+",
+        "fov": 35,
+        "backgroundColor": "#e5e7eb",
+        "grid": false,
+        "gamma": true,
+        "width": 300,
+        "height": 300,
+        "supersampling": 2,
+        "realistic": true
+      },
+      "samplesMs": [8167.576166999999, 9540.635791999997, 7689.931707999996],
+      "medianMs": 8167.576166999999,
+      "pngSha256": "42d0b302e0c0a56b21789643c28edd18692183e4b1edc11edd8eea647c3648c5",
+      "blenderError": null
+    },
+    {
+      "id": "usb-c-pcb",
+      "sourceSha256": "a35d973a91ede7dbf58eae3f3c8a38e7304cd4fc14f4a1b66bb1a43a861ffae7",
+      "options": {
+        "camPos": [24.892780879142077, 43.892727512422915, 34.65614332616634],
+        "lookAt": [0, 1.5750000178813934, -0.19374990463256836],
+        "up": "y+",
+        "fov": 35,
+        "backgroundColor": "#e5e7eb",
+        "grid": false,
+        "gamma": true,
+        "width": 300,
+        "height": 300,
+        "supersampling": 2,
+        "realistic": true
+      },
+      "samplesMs": [4713.647208000002, 8980.744417000002, 4519.876792000003],
+      "medianMs": 4713.647208000002,
+      "pngSha256": "ef84bfa0ba6d0dede62ff4b98591a67d8d7525833c83a94889e5a9aceb59d12e",
+      "blenderError": null
+    },
+    {
+      "id": "soic8",
+      "sourceSha256": "c04e4394cebf7e688c69c4d74e351bf96d2d9400928b3f879532cabacaeedabf",
+      "options": {
+        "camPos": [5.68287298253415, 8.02773486298928, 9.09259677205464],
+        "lookAt": [0, 0.6399999856948851, 0],
+        "up": "y+",
+        "fov": 35,
+        "backgroundColor": "#e5e7eb",
+        "grid": false,
+        "gamma": true,
+        "width": 300,
+        "height": 300,
+        "supersampling": 2,
+        "realistic": true
+      },
+      "samplesMs": [7493.671499999997, 13683.000417000003, 6672.711167000001],
+      "medianMs": 7493.671499999997,
+      "pngSha256": "bb080d95e2f54e9602e33a6173a8faea96b56077abe0087b6f5863204c9376fb",
+      "blenderError": null
+    },
+    {
+      "id": "usb-enclosure",
+      "sourceSha256": "f80d77c07e24d2b61342be0007d1537adba27884f54ed54b6d9cf1279b71c816",
+      "options": {
+        "camPos": [34.962552081945624, 59.114147204687214, 79.34075668022726],
+        "lookAt": [0, 2.3000000715255737, 0.6750144958496094],
+        "up": "y+",
+        "fov": 35,
+        "backgroundColor": "#e5e7eb",
+        "grid": false,
+        "gamma": true,
+        "width": 300,
+        "height": 300,
+        "supersampling": 2,
+        "realistic": true
+      },
+      "samplesMs": [7080.457916999992, 7401.244250000003, 7138.522790999996],
+      "medianMs": 7138.522790999996,
+      "pngSha256": "bc6b131e826de7dc5f8a89636b1f35eaab2419ec29f8c8a46a3ceea1f39e3047",
+      "blenderError": null
+    },
+    {
+      "id": "nema17",
+      "sourceSha256": "615740bbbdbdc1decfe0782f62f7f98e76892a816edff9ec17bb21a4e8575b3c",
+      "options": {
+        "width": 300,
+        "height": 300,
+        "fov": 26.991466429975517,
+        "camPos": [102, 115, 136],
+        "lookAt": [0, 28, 0],
+        "up": "y+",
+        "gamma": true,
+        "supersampling": 2,
+        "realistic": true
+      },
+      "samplesMs": [19694.600000000006, 18928.42645900001, 19045.392458999995],
+      "medianMs": 19045.392458999995,
+      "pngSha256": "347c4798e22124061ed6cd3289a3fa6a3a2336305e991e4623a7f472a41465fc",
+      "blenderError": {
+        "mae": 0.03233965141612166,
+        "rmse": 0.04462607446634316
+      }
+    }
+  ],
+  "comparison": null
+}

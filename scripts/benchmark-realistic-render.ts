@@ -66,6 +66,7 @@ if (
   )
 if (check && !compare) throw new Error("--check requires --compare")
 const root = new URL("../", import.meta.url)
+const nema = await readNema17Fixture()
 const metadata = {
   revision: execFileSync("git", ["rev-parse", "HEAD"], {
     cwd: fileURLToPath(root),
@@ -80,6 +81,8 @@ const metadata = {
   runtime: Bun.version,
   platform: platform(),
   arch: arch(),
+  blenderReferenceSha256: nema.reference.referenceSha256,
+  environmentSha256: nema.reference.environmentSha256,
   size,
   supersampling: 2,
   runs,
@@ -97,6 +100,8 @@ if (baseline)
     "runtime",
     "platform",
     "arch",
+    "blenderReferenceSha256",
+    "environmentSha256",
   ] as const)
     if (baseline.metadata[key] !== metadata[key])
       throw new Error(`Baseline ${key} differs; rerun with matching settings`)
@@ -107,7 +112,6 @@ const median = (values: number[]) => {
     ? sorted[middle]!
     : (sorted[middle - 1]! + sorted[middle]!) / 2
 }
-const nema = await readNema17Fixture()
 const scenes = []
 for (const example of EXAMPLES) {
   const prepared = await prepareExample(example)
@@ -151,6 +155,7 @@ for (const scene of scenes) {
     const start = performance.now()
     png = await render()
     samplesMs.push(performance.now() - start)
+    console.log(`  sample ${i + 1}: ${(samplesMs.at(-1)! / 1000).toFixed(3)}s`)
   }
   const medianMs = median(samplesMs)
   const blenderError =
