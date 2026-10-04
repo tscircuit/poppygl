@@ -42,3 +42,4 @@ out.png
 *.diff.png
 *.actual.png
 *.blend1
+benchmark-results/
