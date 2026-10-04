@@ -36,6 +36,24 @@ test("transparent meshes do not become opaque shadow blockers", () => {
   expect(rays.trace([0, 0, 0], [0, 0, 1])).toBeNull()
 })
 
+test("cached traversal keeps parallel axes, finite limits, and hit normals independent", () => {
+  // Enough triangles to force internal BVH nodes, with widely separated planes.
+  const rays = new RayOcclusion(
+    Array.from({ length: 32 }, (_, i) => triangle(i + 2)),
+  )
+  const front = rays.trace([0, 0, 0], [0, 0, 1])!
+  expect(front.distance).toBeCloseTo(2)
+  front.normal[2] = 42
+  expect(rays.trace([0, 0, 0], [0, 0, 1])!.normal[2]).toBe(-1)
+  expect(rays.trace([0, 0, 40], [0, 0, -1])!.distance).toBeCloseTo(7)
+  expect(rays.trace([0, 0, 40], [0, 0, -1])!.normal[2]).toBe(1)
+  expect(rays.trace([0, 0, 0], [0, 0, 1], 1)).toBeNull()
+  expect(rays.trace([3, 0, 0], [0, 0, 1])).toBeNull()
+  expect(rays.occluded([0, 0, 0], [0, 1, 0])).toBe(false)
+  expect(rays.occluded([0, 0, 0], [1e-14, 0, 1], 3)).toBe(true)
+  expect(rays.trace([0, 0, 0], [0, 0, 1])!.distance).toBeCloseTo(2)
+})
+
 test("a large studio floor does not clip the nearby subject", () => {
   const ground: DrawCall = {
     ...triangle(0),
