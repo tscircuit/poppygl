@@ -102,7 +102,25 @@ export function sideBySide(
     "Blender Cycles 512 samples",
   ],
 ): Uint8Array {
-  const images = [decode(poppy), decode(blender)],
+  return comparisonPanels([poppy, blender], labels)
+}
+
+export function nema17Comparison(
+  regular: Uint8Array,
+  realistic: Uint8Array,
+  blender: Uint8Array,
+): Uint8Array {
+  return comparisonPanels(
+    [regular, realistic, blender],
+    ["PoppyGL regular", "PoppyGL realistic", "Blender Cycles 512 samples"],
+  )
+}
+
+function comparisonPanels(
+  renders: readonly Uint8Array[],
+  labels: readonly string[],
+): Uint8Array {
+  const images = renders.map((png) => decode(png)),
     size = images[0]!.width,
     header = 64
   if (
@@ -111,10 +129,10 @@ export function sideBySide(
     )
   )
     throw new Error("Expected square RGBA renders")
-  const width = size * 2,
+  const width = size * images.length,
     height = size + header,
     data = new Uint8Array(width * height * 4).fill(255)
-  for (let panel = 0; panel < 2; panel++)
+  for (let panel = 0; panel < images.length; panel++)
     for (let y = 0; y < size; y++) {
       data.set(
         images[panel]!.data.subarray(y * size * 4, (y + 1) * size * 4),
@@ -166,9 +184,10 @@ export function sideBySide(
             : textMetrics.glyphWidthRatio)) * scale
     }
   }
-  label(labels[0], 24)
-  label(labels[1], size + 24)
-  for (let y = 0; y < height; y++) pixel(size, y)
+  for (let panel = 0; panel < images.length; panel++) {
+    label(labels[panel]!, panel * size + 24)
+    if (panel > 0) for (let y = 0; y < height; y++) pixel(panel * size, y)
+  }
   return encode({ width, height, data, channels: 4 })
 }
 
@@ -195,7 +214,7 @@ export async function renderNema17Comparison() {
   return {
     realistic,
     legacy,
-    comparison: sideBySide(realistic, blender),
+    comparison: nema17Comparison(legacy, realistic, blender),
     metrics,
   }
 }

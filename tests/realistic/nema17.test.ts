@@ -2,6 +2,7 @@ import { expect, test } from "bun:test"
 import { renderGLTFToPNGFromGLB } from "../../lib"
 import {
   imageError,
+  nema17Comparison,
   readNema17Fixture,
   resizeReference,
   sideBySide,
@@ -37,6 +38,9 @@ test(
     await expect(sideBySide(realistic, reference)).toMatchPngSnapshot(
       import.meta.path,
     )
+    await expect(
+      nema17Comparison(legacy, realistic, reference),
+    ).toMatchPngSnapshot(import.meta.path, "all-modes")
   },
   { timeout: 300_000 },
 )

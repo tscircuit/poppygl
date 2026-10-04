@@ -5,7 +5,12 @@ CAD. It has a 42.3 mm body, 31 mm mounting-hole pitch, a 22 mm locating boss,
 and a 5 mm D shaft. Meshes include bevels, mounting bores, recessed screw heads,
 lamination seams, insulated leads, and a shadow-receiving studio floor.
 
-![PoppyGL alongside Blender Cycles](comparison.png)
+![PoppyGL regular, PoppyGL realistic, and Blender Cycles](comparison.png)
+
+Left to right: **PoppyGL regular** (`realistic: false`), **PoppyGL realistic**
+(`realistic: true`), and **Blender Cycles**. All three views use the same GLB
+geometry, camera, and materials. The regular view uses the default diffuse
+lighting; the other two use the studio environment.
 
 `nema17.glb` is exported from the same evaluated mesh/material scene rendered by
 Blender. `nema17.blend` preserves the reference scene. `blender-cycles.png` is a
