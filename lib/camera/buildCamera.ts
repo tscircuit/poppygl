@@ -140,14 +140,19 @@ function getAABBCornerDistances(
   const ys = [aabb.min[1]!, aabb.max[1]!]
   const zs = [aabb.min[2]!, aabb.max[2]!]
 
-  let nearest = Infinity
+  // Distance to the closest POINT on the box, not its closest corner. A large
+  // floor's corners can all be far away even with a small object beside the eye.
+  const nearest = Math.hypot(
+    ...[0, 1, 2].map((axis) =>
+      Math.max(aabb.min[axis]! - eye[axis]!, 0, eye[axis]! - aabb.max[axis]!),
+    ),
+  )
   let farthest = 0
 
   for (const x of xs) {
     for (const y of ys) {
       for (const z of zs) {
         const distance = vec3.distance(eye, vec3.fromValues(x, y, z))
-        nearest = Math.min(nearest, distance)
         farthest = Math.max(farthest, distance)
       }
     }

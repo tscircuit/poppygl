@@ -47,6 +47,40 @@ const png = await renderGLTFToPNGFromGLB(glb, {
 
 ## Render options
 
+### Realistic studio rendering
+
+Pass `realistic: true` to opt into the software studio renderer:
+
+```ts
+const png = await renderGLTFToPNGFromGLB(glb, {
+  realistic: true,
+  width: 900,
+  height: 900,
+  supersampling: 2,
+})
+```
+
+This mode uses glTF metallic/roughness factors, prefiltered GGX environment
+reflections, geometry-based soft shadows, a limited secondary lighting pass,
+and denoising guided by surface normals, depth, material, and base color.
+It remains pure JavaScript. The existing diffuse renderer remains the default.
+The studio preset replaces `ambient`/`lightDir`; camera, background, and output
+options continue to apply. It is intended for offline snapshots: ray queries
+are substantially more expensive than the default renderer.
+
+The first implementation supports base-color textures and scalar
+metallic/roughness values. Metallic/roughness textures, normal maps, custom HDR
+environments, and full path tracing are not implemented. `BLEND` and `MASK`
+meshes are excluded from ray occlusion; textured secondary-hit colors and
+multi-bounce visibility are approximated.
+
+The [NEMA17 fixture](tests/fixtures/nema17/README.md) includes an original
+procedural model, a saved Blender scene, a 512-sample Cycles reference, matching
+camera/lighting settings, and a side-by-side image. Regenerate the Blender
+reference with `blender -b --python scripts/render-nema17-blender.py`, then run
+`bun scripts/nema17-comparison.ts` for the full comparison. `bun test
+tests/realistic` checks a smaller visual snapshot and reference error.
+
 `renderGLTFToPNGFromURL` accepts the same render options as the lower-level APIs:
 
 - `width`/`height` (default `512`): output resolution in pixels.

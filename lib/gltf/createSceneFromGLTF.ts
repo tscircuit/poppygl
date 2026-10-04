@@ -301,6 +301,8 @@ function getMaterial(
   return {
     baseColorFactor: factor,
     baseColorTexture: texImg,
+    metallicFactor: pbr.metallicFactor ?? 1,
+    roughnessFactor: pbr.roughnessFactor ?? 1,
     alphaMode,
     alphaCutoff,
   }

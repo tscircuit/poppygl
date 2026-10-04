@@ -1,0 +1,32 @@
+{
+  "blenderVersion": "4.2.1 LTS",
+  "engine": "CYCLES",
+  "samples": 512,
+  "seed": 0,
+  "denoising": true,
+  "maxBounces": 8,
+  "viewTransform": "Standard",
+  "look": "None",
+  "exposure": 0,
+  "gamma": 1,
+  "width": 900,
+  "height": 900,
+  "camPos": [
+    102,
+    115,
+    136
+  ],
+  "lookAt": [
+    0,
+    28,
+    0
+  ],
+  "up": "y+",
+  "fov": 26.991466429975517,
+  "units": "millimetres",
+  "glbSha256": "615740bbbdbdc1decfe0782f62f7f98e76892a816edff9ec17bb21a4e8575b3c",
+  "environmentSha256": "dea1040a9d08e69a01cb00c77498ef7c6fa3565ce2536488ebbdf8c4476b2d76",
+  "model": "Original procedural 42.3 mm NEMA17 illustration; 31 mm mounting pitch; 5 mm D shaft. Not manufacturer CAD.",
+  "referenceSha256": "677a117f4cac6c677f216d922744a9cc938b5e3c7727ee28f400dba5bc09f178",
+  "blendSha256": "366dfc68c5eec054ee34885eff5d435009cec81196dc0c55172c7e698491f798"
+}

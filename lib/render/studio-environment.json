@@ -1,0 +1,8 @@
+{
+  "ambient": [0.055, 0.065, 0.085],
+  "lobes": [
+    { "direction": [-0.45, 0.8, 0.4], "sharpness": 18, "color": [5, 4.8, 4.4] },
+    { "direction": [0.8, 0.3, 0.3], "sharpness": 30, "color": [2.6, 3.1, 4] },
+    { "direction": [-0.2, 0.3, -0.95], "sharpness": 50, "color": [4, 4.3, 5] }
+  ]
+}
