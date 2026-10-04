@@ -52,12 +52,12 @@
   {
     "id": "soic8",
     "title": "SOIC 8 package",
-    "source": "tests/basics/soic8.gltf",
+    "source": "tests/fixtures/assets/soic8-modelcdn.glb",
     "direction": [1, 1.3, 1.6],
-    "sourceSha256": "721d242d948c890f22fd26c8a7cc607d60c3fa54f9f70e1325d73551acda5cdc",
+    "sourceSha256": "c04e4394cebf7e688c69c4d74e351bf96d2d9400928b3f879532cabacaeedabf",
     "options": {
-      "camPos": [5.682160914432489, 8.024309176841307, 9.091457463091983],
-      "lookAt": [0, 0.6374999880790709, 0],
+      "camPos": [5.68287298253415, 8.02773486298928, 9.09259677205464],
+      "lookAt": [0, 0.6399999856948851, 0],
       "up": "y+",
       "fov": 35,
       "backgroundColor": "#e5e7eb",
@@ -67,12 +67,13 @@
       "height": 600,
       "supersampling": 2
     },
-    "realisticSeconds": 38.700696457999996,
-    "defaultSeconds": 0.5871132079999952,
-    "slowdown": 65.91692356885336,
+    "realisticSeconds": 37.3410185,
+    "defaultSeconds": 0.7911959580000039,
+    "slowdown": 47.19566388381349,
     "materialAuthoring": "Plastic body and steel leads; Z-up remapped to Y-up",
     "hiddenEdges": false,
-    "studioFloor": true
+    "studioFloor": true,
+    "sourceUrl": "https://modelcdn.tscircuit.com/jscad_models/soic8.glb"
   },
   {
     "id": "usb-enclosure",

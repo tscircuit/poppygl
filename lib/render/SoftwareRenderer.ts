@@ -562,7 +562,11 @@ export class SoftwareRenderer {
             )
           }
           let a = baseColor[3]
-          const linearRadiance: [number, number, number] = [r, g, b]
+          // Keep scalar guides until the realistic-only denoising path needs
+          // them, so regular rendering does not allocate a tuple per pixel.
+          const linearR = r,
+            linearG = g,
+            linearB = b
 
           // Handle material transparency
           const alphaMode = material.alphaMode ?? "OPAQUE"
@@ -630,7 +634,7 @@ export class SoftwareRenderer {
                 materialId,
                 nrm,
                 [baseColor[0], baseColor[1], baseColor[2]],
-                linearRadiance,
+                [linearR, linearG, linearB],
                 distance,
               )
             } else this.denoiser.ids[di] = 0

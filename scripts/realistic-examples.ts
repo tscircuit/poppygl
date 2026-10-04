@@ -29,7 +29,8 @@ export const EXAMPLES = [
   {
     id: "soic8",
     title: "SOIC 8 package",
-    source: "tests/basics/soic8.gltf",
+    source: "tests/fixtures/assets/soic8-modelcdn.glb",
+    sourceUrl: "https://modelcdn.tscircuit.com/jscad_models/soic8.glb",
     direction: [1, 1.3, 1.6],
   },
   {
@@ -67,8 +68,8 @@ export async function prepareExample(example: Example) {
   })
   const { drawCalls } = createSceneFromGLTF(loaded.gltf, loaded.resources)
   if (example.id === "soic8") {
-    // This existing fixture is Z-up and uses vertex colors without material
-    // definitions. Preserve its geometry, remap Z-up to Y-up, and explicitly
+    // The refreshed Model CDN asset is Z-up and uses vertex colors without
+    // material definitions. Preserve its geometry, remap Z-up to Y-up, and
     // author steel leads and a molded plastic body for both comparison panels.
     const rotation = mat4.fromXRotation(mat4.create(), -Math.PI / 2)
     for (const dc of drawCalls) {

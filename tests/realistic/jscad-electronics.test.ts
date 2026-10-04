@@ -7,7 +7,7 @@ import {
 import { mat4 } from "gl-matrix"
 import { encodePNG, renderDrawCalls, type DrawCall } from "../../lib"
 import { EXAMPLES, prepareExample } from "../../scripts/realistic-examples"
-import { sideBySide } from "../../scripts/nema17-comparison"
+import { imageError, sideBySide } from "../../scripts/nema17-comparison"
 import "../fixtures/preload"
 
 test(
@@ -58,6 +58,13 @@ test(
     const legacy = await encodePNG(
       renderDrawCalls(drawCalls, { ...options, realistic: false }).bitmap,
     )
+    const cdn = await encodePNG(
+      renderDrawCalls(prepared.drawCalls, { ...options, realistic: true })
+        .bitmap,
+    )
+    const cdnError = imageError(realistic, cdn)
+    console.log("Latest JSCAD vs refreshed Model CDN SOIC-8", cdnError)
+    expect(cdnError.mae).toBeLessThan(0.01)
     await expect(
       sideBySide(legacy, realistic, ["JSCAD default", "JSCAD realistic"]),
     ).toMatchPngSnapshot(import.meta.path)
