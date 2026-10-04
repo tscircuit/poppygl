@@ -3,23 +3,11 @@
     "id": "arduino-uno",
     "title": "Arduino Uno",
     "source": "tests/fixtures/assets/arduino-uno.glb",
-    "direction": [
-      1,
-      1.6,
-      1.35
-    ],
+    "direction": [1, 1.6, 1.35],
     "sourceSha256": "e84615d6046a30accfc72acb7efa523d825a733014f7580aa3893ff383feb1e4",
     "options": {
-      "camPos": [
-        75.87426592437491,
-        121.25883071467187,
-        98.414008482922
-      ],
-      "lookAt": [
-        2.9750003814697266,
-        4.62000584602356,
-        0
-      ],
+      "camPos": [75.87426592437491, 121.25883071467187, 98.414008482922],
+      "lookAt": [2.9750003814697266, 4.62000584602356, 0],
       "up": "y+",
       "fov": 35,
       "backgroundColor": "#e5e7eb",
@@ -29,7 +17,9 @@
       "height": 600,
       "supersampling": 2
     },
-    "realisticSeconds": 30.542570333,
+    "realisticSeconds": 30.523584334,
+    "defaultSeconds": 1.5502096249999995,
+    "slowdown": 19.689972144251144,
     "materialAuthoring": "Original material definitions",
     "hiddenEdges": false,
     "studioFloor": true
@@ -38,23 +28,11 @@
     "id": "usb-c-pcb",
     "title": "USB C PCB",
     "source": "tests/basics/circuit.gltf",
-    "direction": [
-      1,
-      1.7,
-      1.4
-    ],
+    "direction": [1, 1.7, 1.4],
     "sourceSha256": "a35d973a91ede7dbf58eae3f3c8a38e7304cd4fc14f4a1b66bb1a43a861ffae7",
     "options": {
-      "camPos": [
-        24.892780879142077,
-        43.892727512422915,
-        34.65614332616634
-      ],
-      "lookAt": [
-        0,
-        1.5750000178813934,
-        -0.19374990463256836
-      ],
+      "camPos": [24.892780879142077, 43.892727512422915, 34.65614332616634],
+      "lookAt": [0, 1.5750000178813934, -0.19374990463256836],
       "up": "y+",
       "fov": 35,
       "backgroundColor": "#e5e7eb",
@@ -64,7 +42,9 @@
       "height": 600,
       "supersampling": 2
     },
-    "realisticSeconds": 21.823144499999998,
+    "realisticSeconds": 21.345559584000004,
+    "defaultSeconds": 1.0617026250000055,
+    "slowdown": 20.105026663186308,
     "materialAuthoring": "Original material definitions",
     "hiddenEdges": false,
     "studioFloor": true
@@ -73,23 +53,11 @@
     "id": "soic8",
     "title": "SOIC 8 package",
     "source": "tests/basics/soic8.gltf",
-    "direction": [
-      1,
-      1.3,
-      1.6
-    ],
+    "direction": [1, 1.3, 1.6],
     "sourceSha256": "721d242d948c890f22fd26c8a7cc607d60c3fa54f9f70e1325d73551acda5cdc",
     "options": {
-      "camPos": [
-        5.682160914432489,
-        8.024309176841307,
-        9.091457463091983
-      ],
-      "lookAt": [
-        0,
-        0.6374999880790709,
-        0
-      ],
+      "camPos": [5.682160914432489, 8.024309176841307, 9.091457463091983],
+      "lookAt": [0, 0.6374999880790709, 0],
       "up": "y+",
       "fov": 35,
       "backgroundColor": "#e5e7eb",
@@ -99,7 +67,9 @@
       "height": 600,
       "supersampling": 2
     },
-    "realisticSeconds": 37.519068874999995,
+    "realisticSeconds": 38.700696457999996,
+    "defaultSeconds": 0.5871132079999952,
+    "slowdown": 65.91692356885336,
     "materialAuthoring": "Plastic body and steel leads; Z-up remapped to Y-up",
     "hiddenEdges": false,
     "studioFloor": true
@@ -108,23 +78,11 @@
     "id": "usb-enclosure",
     "title": "USB enclosure",
     "source": "tests/fixtures/assets/enclosure-fdm-box-usb-cutout.glb",
-    "direction": [
-      0.8,
-      1.3,
-      1.8
-    ],
+    "direction": [0.8, 1.3, 1.8],
     "sourceSha256": "f80d77c07e24d2b61342be0007d1537adba27884f54ed54b6d9cf1279b71c816",
     "options": {
-      "camPos": [
-        34.962552081945624,
-        59.114147204687214,
-        79.34075668022726
-      ],
-      "lookAt": [
-        0,
-        2.3000000715255737,
-        0.6750144958496094
-      ],
+      "camPos": [34.962552081945624, 59.114147204687214, 79.34075668022726],
+      "lookAt": [0, 2.3000000715255737, 0.6750144958496094],
       "up": "y+",
       "fov": 35,
       "backgroundColor": "#e5e7eb",
@@ -134,7 +92,9 @@
       "height": 600,
       "supersampling": 2
     },
-    "realisticSeconds": 25.85472304099999,
+    "realisticSeconds": 26.814780375,
+    "defaultSeconds": 1.259468041999993,
+    "slowdown": 21.290560364214585,
     "materialAuthoring": "Original material definitions",
     "hiddenEdges": false,
     "studioFloor": true

@@ -21,10 +21,12 @@
   "type": "module",
   "devDependencies": {
     "@biomejs/biome": "^2.2.4",
+    "@jscad/modeling": "2.13.0",
     "@playwright/test": "^1.60.0",
     "@tscircuit/alphabet": "0.0.23",
     "@types/bun": "^1.2.23",
     "@types/readable-stream": "^4.0.21",
+    "jscad-electronics": "0.0.187",
     "looks-same": "^10.0.1",
     "react": "^19.1.1",
     "react-cosmos": "^7.0.0",

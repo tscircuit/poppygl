@@ -11,16 +11,8 @@
   "gamma": 1,
   "width": 900,
   "height": 900,
-  "camPos": [
-    102,
-    115,
-    136
-  ],
-  "lookAt": [
-    0,
-    28,
-    0
-  ],
+  "camPos": [102, 115, 136],
+  "lookAt": [0, 28, 0],
   "up": "y+",
   "fov": 26.991466429975517,
   "units": "millimetres",

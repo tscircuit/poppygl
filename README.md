@@ -81,6 +81,13 @@ reference with `blender -b --python scripts/render-nema17-blender.py`, then run
 `bun scripts/nema17-comparison.ts` for the full comparison. `bun test
 tests/realistic` checks a smaller visual snapshot and reference error.
 
+The [existing-model gallery](tests/fixtures/realistic-examples/README.md) compares
+four repository assets with the default and realistic modes. Run
+`bun scripts/realistic-examples.ts` to regenerate it, or open the
+`realistic-gallery` Cosmos example to toggle the saved views. The measured
+600×600 renders with 2× supersampling take 21–39 seconds in realistic mode
+versus 0.6–1.6 seconds in default mode on the development machine.
+
 `renderGLTFToPNGFromURL` accepts the same render options as the lower-level APIs:
 
 - `width`/`height` (default `512`): output resolution in pixels.

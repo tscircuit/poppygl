@@ -27,6 +27,7 @@ Reproduce from the repository root:
 bun install --frozen-lockfile
 blender -b --python scripts/render-nema17-blender.py
 bun scripts/nema17-comparison.ts
+bunx biome format --write tests/fixtures/nema17/reference.json
 bun test tests/realistic
 ```
 

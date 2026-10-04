@@ -101,7 +101,7 @@ export async function prepareExample(example: Example) {
   const camPos = center.map(
     (v, i) => v + (example.direction[i]! / directionLength) * distance,
   ) as [number, number, number]
-  const y = bounds.min[1] - maxSize * 0.006,
+  const y = bounds.min[1]! - maxSize * 0.006,
     s = maxSize * 8
   const floor: DrawCall = {
     positions: new Float32Array([
@@ -163,10 +163,12 @@ export async function renderExample(
     renderDrawCalls(prepared.drawCalls, { ...options, realistic: true }).bitmap,
   )
   const seconds = (performance.now() - start) / 1000
+  const defaultStart = performance.now()
   const legacy = await encodePNG(
     renderDrawCalls(prepared.drawCalls, { ...options, realistic: false })
       .bitmap,
   )
+  const defaultSeconds = (performance.now() - defaultStart) / 1000
   const comparison = sideBySide(legacy, realistic, [
     `${example.title} default`,
     `${example.title} realistic`,
@@ -180,6 +182,8 @@ export async function renderExample(
       sourceSha256: prepared.sourceSha256,
       options,
       realisticSeconds: seconds,
+      defaultSeconds,
+      slowdown: seconds / defaultSeconds,
       materialAuthoring:
         example.id === "soic8"
           ? "Plastic body and steel leads; Z-up remapped to Y-up"
@@ -218,7 +222,7 @@ if (import.meta.main) {
     ] as const)
       await writeFile(`${output}/${example.id}-${suffix}.png`, bytes)
     console.log(
-      `${example.title}: ${result.metadata.realisticSeconds.toFixed(1)} seconds`,
+      `${example.title}: default ${result.metadata.defaultSeconds.toFixed(3)}s, realistic ${result.metadata.realisticSeconds.toFixed(1)}s (${result.metadata.slowdown.toFixed(1)}x)`,
     )
     results.push(result)
   }
