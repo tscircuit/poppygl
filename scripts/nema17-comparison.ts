@@ -94,7 +94,14 @@ export function resizeReference(png: Uint8Array, size: number): Uint8Array {
 }
 
 /** Font-independent labels keep the visual snapshot reproducible on CI. */
-export function sideBySide(poppy: Uint8Array, blender: Uint8Array): Uint8Array {
+export function sideBySide(
+  poppy: Uint8Array,
+  blender: Uint8Array,
+  labels: readonly [string, string] = [
+    "PoppyGL realistic",
+    "Blender Cycles 512 samples",
+  ],
+): Uint8Array {
   const images = [decode(poppy), decode(blender)],
     size = images[0]!.width,
     header = 64
@@ -159,8 +166,8 @@ export function sideBySide(poppy: Uint8Array, blender: Uint8Array): Uint8Array {
             : textMetrics.glyphWidthRatio)) * scale
     }
   }
-  label("PoppyGL realistic", 24)
-  label("Blender Cycles 512 samples", size + 24)
+  label(labels[0], 24)
+  label(labels[1], size + 24)
   for (let y = 0; y < height; y++) pixel(size, y)
   return encode({ width, height, data, channels: 4 })
 }
