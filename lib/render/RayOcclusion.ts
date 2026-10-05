@@ -6,11 +6,14 @@ interface Triangle {
   p: V3
   e1: V3
   e2: V3
+  normal: V3
   min: V3
   max: V3
   center: V3
   material: Material
 }
+type HitTriangle = Pick<Triangle, "normal" | "material">
+
 export interface RayHit {
   position: V3
   normal: V3
@@ -29,8 +32,19 @@ interface Node {
  * Coordinates retain the input scene's units; bias scales with its bounds.
  */
 export class RayOcclusion {
-  private root: Node | null
+  private bounds = new Float64Array(0)
+  private escapes = new Uint32Array(0)
+  private starts = new Uint32Array(0)
+  private counts = new Uint8Array(0)
+  private triangleData = new Float64Array(0)
+  private triangles: HitTriangle[] = []
   readonly bias: number
+  private inverse: V3 = [0, 0, 0]
+  private parallelAxes = 0
+  private closest: { hit: HitTriangle | null; limit: number } = {
+    hit: null,
+    limit: Infinity,
+  }
 
   constructor(drawCalls: DrawCall[]) {
     const triangles: Triangle[] = []
@@ -59,10 +73,20 @@ export class RayOcclusion {
         const max: V3 = [0, 1, 2].map((a) =>
           Math.max(p[a]!, q[a]!, r[a]!),
         ) as V3
+        const e1 = q.map((v, a) => v - p[a]!) as V3,
+          e2 = r.map((v, a) => v - p[a]!) as V3
+        const normal: V3 = [
+          e1[1] * e2[2] - e1[2] * e2[1],
+          e1[2] * e2[0] - e1[0] * e2[2],
+          e1[0] * e2[1] - e1[1] * e2[0],
+        ]
+        const length = Math.hypot(...normal) || 1
+        for (let a = 0; a < 3; a++) normal[a]! /= length
         triangles.push({
           p,
-          e1: q.map((v, a) => v - p[a]!) as V3,
-          e2: r.map((v, a) => v - p[a]!) as V3,
+          e1,
+          e2,
+          normal,
           min,
           max,
           center: min.map((v, a) => (v + max[a]!) / 2) as V3,
@@ -70,11 +94,55 @@ export class RayOcclusion {
         })
       }
     }
-    this.root = triangles.length ? this.build(triangles) : null
-    const extent = this.root
-      ? Math.hypot(...this.root.max.map((v, a) => v - this.root!.min[a]!))
+    const root = triangles.length ? this.build(triangles) : null
+    if (root) this.flatten(root, triangles.length)
+    const extent = root
+      ? Math.hypot(...root.max.map((v, a) => v - root.min[a]!))
       : 1
     this.bias = Math.max(1e-7, extent * 1e-5)
+  }
+
+  /** Preorder bounds with subtree escape offsets retain the existing SAH
+   * primitive order, while avoiding recursive calls and pointer-heavy nodes
+   * during millions of ray queries. Float64 retains the original precision.
+   */
+  private flatten(root: Node, triangleCount: number) {
+    const nodes: Node[] = [],
+      escapes: number[] = []
+    const visit = (node: Node) => {
+      const index = nodes.length
+      nodes.push(node)
+      escapes.push(0)
+      if (!node.triangles) {
+        visit(node.left!)
+        visit(node.right!)
+      }
+      escapes[index] = nodes.length
+    }
+    visit(root)
+    this.bounds = new Float64Array(nodes.length * 6)
+    this.escapes = Uint32Array.from(escapes)
+    this.starts = new Uint32Array(nodes.length)
+    this.counts = new Uint8Array(nodes.length)
+    this.triangleData = new Float64Array(triangleCount * 9)
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i]!
+      this.bounds.set(node.min, i * 6)
+      this.bounds.set(node.max, i * 6 + 3)
+      if (!node.triangles) continue
+      this.starts[i] = this.triangles.length
+      this.counts[i] = node.triangles.length
+      for (const triangle of node.triangles) {
+        const offset = this.triangles.length * 9
+        this.triangleData.set(triangle.p, offset)
+        this.triangleData.set(triangle.e1, offset + 3)
+        this.triangleData.set(triangle.e2, offset + 6)
+        this.triangles.push({
+          normal: triangle.normal,
+          material: triangle.material,
+        })
+      }
+    }
   }
 
   private build(triangles: Triangle[]): Node {
@@ -136,97 +204,173 @@ export class RayOcclusion {
     }
   }
 
+  private prepareRay(direction: V3) {
+    this.parallelAxes = 0
+    for (let a = 0; a < 3; a++) {
+      this.inverse[a] = 1 / direction[a]!
+      if (Math.abs(direction[a]!) < 1e-12) this.parallelAxes |= 1 << a
+    }
+  }
+
   occluded(origin: V3, direction: V3, maxDistance = Infinity): boolean {
-    return this.root
-      ? this.intersect(this.root, origin, direction, maxDistance)
-      : false
+    this.prepareRay(direction)
+    return this.intersect(origin, direction, maxDistance)
   }
 
   /** Closest opaque triangle for one-bounce reflections and diffuse fill. */
   trace(origin: V3, direction: V3, maxDistance = Infinity): RayHit | null {
-    const state: { hit: RayHit | null; limit: number } = {
-      hit: null,
-      limit: maxDistance,
+    this.prepareRay(direction)
+    const state = this.closest
+    state.hit = null
+    state.limit = maxDistance
+    this.intersect(origin, direction, maxDistance, state)
+    if (!state.hit) return null
+    const { normal, material } = state.hit
+    const sign = dotNormal(normal, direction) > 0 ? -1 : 1
+    return {
+      position: [
+        origin[0] + direction[0] * state.limit,
+        origin[1] + direction[1] * state.limit,
+        origin[2] + direction[2] * state.limit,
+      ],
+      normal: [normal[0] * sign, normal[1] * sign, normal[2] * sign],
+      material,
+      distance: state.limit,
     }
-    if (this.root)
-      this.intersect(this.root, origin, direction, maxDistance, state)
-    return state.hit
   }
 
   private intersect(
-    node: Node,
     o: V3,
     d: V3,
-    limit: number,
-    state?: { hit: RayHit | null; limit: number },
+    maxDistance: number,
+    state?: { hit: HitTriangle | null; limit: number },
   ): boolean {
-    if (state) limit = state.limit
-    let near = 0,
-      far = limit
-    for (let a = 0; a < 3; a++) {
-      if (Math.abs(d[a]!) < 1e-12) {
-        if (o[a]! < node.min[a]! || o[a]! > node.max[a]!) return false
-        continue
+    const ox = o[0],
+      oy = o[1],
+      oz = o[2],
+      dx = d[0],
+      dy = d[1],
+      dz = d[2],
+      ix = this.inverse[0],
+      iy = this.inverse[1],
+      iz = this.inverse[2],
+      parallel = this.parallelAxes,
+      bounds = this.bounds,
+      data = this.triangleData
+    let node = 0
+    while (node < this.counts.length) {
+      const offset = node * 6
+      let limit = state ? state.limit : maxDistance,
+        near = 0,
+        far = limit
+      // Reject thin horizontal bounds first. Fixed indices keep slab tests
+      // scalar and remove the dynamic axis loop from traversal.
+      if (parallel & 2) {
+        if (oy < bounds[offset + 1]! || oy > bounds[offset + 4]!) {
+          node = this.escapes[node]!
+          continue
+        }
+      } else {
+        let t0 = (bounds[offset + 1]! - oy) * iy,
+          t1 = (bounds[offset + 4]! - oy) * iy
+        if (t0 > t1) {
+          const swap = t0
+          t0 = t1
+          t1 = swap
+        }
+        if (t0 > near) near = t0
+        if (t1 < far) far = t1
+        if (far < near) {
+          node = this.escapes[node]!
+          continue
+        }
       }
-      const t0 = (node.min[a]! - o[a]!) / d[a]!,
-        t1 = (node.max[a]! - o[a]!) / d[a]!
-      near = Math.max(near, Math.min(t0, t1))
-      far = Math.min(far, Math.max(t0, t1))
-      if (far < near) return false
-    }
-    if (node.triangles) {
-      for (const { p, e1, e2, material } of node.triangles) {
-        const px = d[1] * e2[2] - d[2] * e2[1],
-          py = d[2] * e2[0] - d[0] * e2[2],
-          pz = d[0] * e2[1] - d[1] * e2[0]
-        const det = e1[0] * px + e1[1] * py + e1[2] * pz
+      if (parallel & 1) {
+        if (ox < bounds[offset + 0]! || ox > bounds[offset + 3]!) {
+          node = this.escapes[node]!
+          continue
+        }
+      } else {
+        let t0 = (bounds[offset + 0]! - ox) * ix,
+          t1 = (bounds[offset + 3]! - ox) * ix
+        if (t0 > t1) {
+          const swap = t0
+          t0 = t1
+          t1 = swap
+        }
+        if (t0 > near) near = t0
+        if (t1 < far) far = t1
+        if (far < near) {
+          node = this.escapes[node]!
+          continue
+        }
+      }
+      if (parallel & 4) {
+        if (oz < bounds[offset + 2]! || oz > bounds[offset + 5]!) {
+          node = this.escapes[node]!
+          continue
+        }
+      } else {
+        let t0 = (bounds[offset + 2]! - oz) * iz,
+          t1 = (bounds[offset + 5]! - oz) * iz
+        if (t0 > t1) {
+          const swap = t0
+          t0 = t1
+          t1 = swap
+        }
+        if (t0 > near) near = t0
+        if (t1 < far) far = t1
+        if (far < near) {
+          node = this.escapes[node]!
+          continue
+        }
+      }
+      const start = this.starts[node]!,
+        end = start + this.counts[node]!
+      for (let i = start; i < end; i++) {
+        const offset = i * 9,
+          p0 = data[offset]!,
+          p1 = data[offset + 1]!,
+          p2 = data[offset + 2]!,
+          e10 = data[offset + 3]!,
+          e11 = data[offset + 4]!,
+          e12 = data[offset + 5]!,
+          e20 = data[offset + 6]!,
+          e21 = data[offset + 7]!,
+          e22 = data[offset + 8]!
+        const px = dy * e22 - dz * e21,
+          py = dz * e20 - dx * e22,
+          pz = dx * e21 - dy * e20
+        const det = e10 * px + e11 * py + e12 * pz
         if (Math.abs(det) < 1e-12) continue
         const inv = 1 / det,
-          tx = o[0] - p[0],
-          ty = o[1] - p[1],
-          tz = o[2] - p[2]
+          tx = ox - p0,
+          ty = oy - p1,
+          tz = oz - p2
         const u = (tx * px + ty * py + tz * pz) * inv
         if (u < 0 || u > 1) continue
-        const qx = ty * e1[2] - tz * e1[1],
-          qy = tz * e1[0] - tx * e1[2],
-          qz = tx * e1[1] - ty * e1[0]
-        const v = (d[0] * qx + d[1] * qy + d[2] * qz) * inv
+        const qx = ty * e12 - tz * e11,
+          qy = tz * e10 - tx * e12,
+          qz = tx * e11 - ty * e10
+        const v = (dx * qx + dy * qy + dz * qz) * inv
         if (v < 0 || u + v > 1) continue
-        const distance = (e2[0] * qx + e2[1] * qy + e2[2] * qz) * inv
+        const distance = (e20 * qx + e21 * qy + e22 * qz) * inv
         if (distance > this.bias * 0.25 && distance < limit) {
           if (!state) return true
-          const normal: V3 = [
-            e1[1] * e2[2] - e1[2] * e2[1],
-            e1[2] * e2[0] - e1[0] * e2[2],
-            e1[0] * e2[1] - e1[1] * e2[0],
-          ]
-          const length = Math.hypot(...normal) || 1
-          for (let a = 0; a < 3; a++) normal[a]! /= length
-          if (normal[0] * d[0] + normal[1] * d[1] + normal[2] * d[2] > 0)
-            for (let a = 0; a < 3; a++) normal[a]! *= -1
-          state.hit = {
-            position: [
-              o[0] + d[0] * distance,
-              o[1] + d[1] * distance,
-              o[2] + d[2] * distance,
-            ],
-            normal,
-            material,
-            distance,
-          }
+          state.hit = this.triangles[i]!
           state.limit = limit = distance
         }
       }
-      return false
+      node++
     }
-    if (state) {
-      this.intersect(node.left!, o, d, limit, state)
-      this.intersect(node.right!, o, d, state.limit, state)
-      return state.hit !== null
-    }
-    return (
-      this.intersect(node.left!, o, d, limit) ||
-      this.intersect(node.right!, o, d, limit)
-    )
+    return state?.hit != null
   }
+}
+
+function dotNormal(normal: V3, direction: V3) {
+  return (
+    normal[0] * direction[0] +
+    normal[1] * direction[1] +
+    normal[2] * direction[2]
+  )
 }

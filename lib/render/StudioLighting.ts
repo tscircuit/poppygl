@@ -50,7 +50,9 @@ function orient(x: number, y: number, z: number, n: V3, t: V3, b: V3): V3 {
   ]
 }
 
-function sampleTable(table: Float32Array, n: V3): number {
+type Lookup = [number, number, number, number, number, number]
+
+function tableLookup(n: V3): Lookup {
   const x = (Math.atan2(n[2], n[0]) / (2 * Math.PI) + 0.5) * W - 0.5
   const y = Math.max(
     0,
@@ -66,9 +68,14 @@ function sampleTable(table: Float32Array, n: V3): number {
   const a = ((ix % W) + W) % W,
     b = (a + 1) % W,
     c = Math.min(H - 1, iy + 1)
+  return [iy * W + a, iy * W + b, c * W + a, c * W + b, fx, fy]
+}
+
+function sampleTable(table: Float32Array, lookup: Lookup): number {
+  const [i00, i10, i01, i11, fx, fy] = lookup
   return (
-    (table[iy * W + a]! * (1 - fx) + table[iy * W + b]! * fx) * (1 - fy) +
-    (table[c * W + a]! * (1 - fx) + table[c * W + b]! * fx) * fy
+    (table[i00]! * (1 - fx) + table[i10]! * fx) * (1 - fy) +
+    (table[i01]! * (1 - fx) + table[i11]! * fx) * fy
   )
 }
 
@@ -182,7 +189,12 @@ export class StudioLighting {
   private tables = getTables()
   private occlusion: RayOcclusion
   private eye: V3
-  private shadowDirections: V3[][]
+  private shadowDirections: {
+    parallel: V3
+    perpendicular: V3
+    cross: V3
+  }[][]
+  private diffuseCache = new WeakMap<Material, { normal: V3; irradiance: V3 }>()
 
   constructor(drawCalls: DrawCall[], camera: Camera) {
     this.occlusion = new RayOcclusion(drawCalls)
@@ -199,7 +211,7 @@ export class StudioLighting {
           cos = 1 + Math.log(1 - u) / l.sharpness,
           sin = Math.sqrt(Math.max(0, 1 - cos * cos)),
           phi = 2 * Math.PI * radicalInverse(i)
-        return orient(
+        const direction = orient(
           sin * Math.cos(phi),
           sin * Math.sin(phi),
           cos,
@@ -207,17 +219,37 @@ export class StudioLighting {
           t,
           b,
         )
+        const parallel = dot(direction, l.direction)
+        return {
+          parallel: l.direction.map((v) => v * parallel) as V3,
+          perpendicular: direction.map(
+            (v, k) => v - l.direction[k]! * parallel,
+          ) as V3,
+          cross: [
+            l.direction[1] * direction[2] - l.direction[2] * direction[1],
+            l.direction[2] * direction[0] - l.direction[0] * direction[2],
+            l.direction[0] * direction[1] - l.direction[1] * direction[0],
+          ] as V3,
+        }
       })
     })
   }
 
   private bounceRadiance(hit: RayHit, incoming: V3): V3 {
     const metal = Math.max(0, Math.min(1, hit.material.metallicFactor ?? 1))
-    const irradiance: V3 = [...environment.ambient] as V3
-    for (let j = 0; j < lobes.length; j++) {
-      const value = sampleTable(this.tables.diffuse[j]!, hit.normal)
-      for (let k = 0; k < 3; k++) irradiance[k]! += value * lobes[j]!.color[k]!
+    let cached = this.diffuseCache.get(hit.material)
+    if (!cached || cached.normal.some((v, k) => !Object.is(v, hit.normal[k]))) {
+      const irradiance = [...environment.ambient] as V3
+      const lookup = tableLookup(hit.normal)
+      for (let j = 0; j < lobes.length; j++) {
+        const value = sampleTable(this.tables.diffuse[j]!, lookup)
+        for (let k = 0; k < 3; k++)
+          irradiance[k]! += value * lobes[j]!.color[k]!
+      }
+      cached = { normal: [...hit.normal] as V3, irradiance }
+      this.diffuseCache.set(hit.material, cached)
     }
+    const irradiance = cached.irradiance
     const base = hit.material.baseColorFactor
     const rough = Math.max(0.04, Math.min(1, hit.material.roughnessFactor ?? 1))
     const nv = Math.max(0.001, -dot(hit.normal, incoming))
@@ -242,10 +274,13 @@ export class StudioLighting {
       (c, k) => c * base[k]! * (1 - metal) * 0.96,
     ) as V3
     const pref: V3 = [...environment.ambient] as V3
+    const reflectedLookup = tableLookup(reflected)
     for (let j = 0; j < lobes.length; j++) {
       const value =
-        sampleTable(this.tables.specular[level]![j]!, reflected) * (1 - blend) +
-        sampleTable(this.tables.specular[level + 1]![j]!, reflected) * blend
+        sampleTable(this.tables.specular[level]![j]!, reflectedLookup) *
+          (1 - blend) +
+        sampleTable(this.tables.specular[level + 1]![j]!, reflectedLookup) *
+          blend
       for (let k = 0; k < 3; k++) pref[k]! += value * lobes[j]!.color[k]!
     }
     for (let k = 0; k < 3; k++)
@@ -306,34 +341,29 @@ export class StudioLighting {
     const phase = hash * 2 * Math.PI,
       cosPhase = Math.cos(phase),
       sinPhase = Math.sin(phase)
+    const normalLookup = tableLookup(n),
+      reflectedLookup = tableLookup(reflected)
     for (let j = 0; j < lobes.length; j++) {
       const dirs = this.shadowDirections[j]!
       let visible = 0,
         total = 0
-      const axis = lobes[j]!.direction
-      for (const direction of dirs) {
-        const parallel = dot(direction, axis)
-        const cross: V3 = [
-          axis[1] * direction[2] - axis[2] * direction[1],
-          axis[2] * direction[0] - axis[0] * direction[2],
-          axis[0] * direction[1] - axis[1] * direction[0],
+      for (const { parallel, perpendicular, cross } of dirs) {
+        const l: V3 = [
+          parallel[0] + perpendicular[0] * cosPhase + cross[0] * sinPhase,
+          parallel[1] + perpendicular[1] * cosPhase + cross[1] * sinPhase,
+          parallel[2] + perpendicular[2] * cosPhase + cross[2] * sinPhase,
         ]
-        const l: V3 = direction.map(
-          (value, k) =>
-            axis[k]! * parallel +
-            (value - axis[k]! * parallel) * cosPhase +
-            cross[k]! * sinPhase,
-        ) as V3
         const weight = Math.max(0, dot(n, l))
         total += weight
         if (weight > 0 && !this.occlusion.occluded(origin, l)) visible += weight
       }
       const visibility = total > 0 ? visible / total : 1
-      const diffuse = sampleTable(this.tables.diffuse[j]!, n) * visibility
+      const diffuse =
+        sampleTable(this.tables.diffuse[j]!, normalLookup) * visibility
       const specular =
-        (sampleTable(this.tables.specular[level]![j]!, reflected) *
+        (sampleTable(this.tables.specular[level]![j]!, reflectedLookup) *
           (1 - blend) +
-          sampleTable(this.tables.specular[level + 1]![j]!, reflected) *
+          sampleTable(this.tables.specular[level + 1]![j]!, reflectedLookup) *
             blend) *
         visibility
       for (let k = 0; k < 3; k++) {
@@ -346,7 +376,7 @@ export class StudioLighting {
     // product shot the floor is essential fill, especially for black surfaces.
     const [t, b] = basis(n)
     let blocked = 0
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; metal < 1 && i < 4; i++) {
       const phi = (i * Math.PI) / 2 + phase,
         l = orient(
           0.7 * Math.cos(phi),

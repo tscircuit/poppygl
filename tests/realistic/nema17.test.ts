@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test"
 import { renderGLTFToPNGFromGLB } from "../../lib"
+import baseline from "../../benchmarks/realistic-baseline.json"
 import {
   imageError,
   nema17Comparison,
@@ -31,10 +32,13 @@ test(
       realistic: realError,
       legacy: oldError,
     })
-    // A substantial improvement over the diffuse renderer, plus an absolute
-    // bound. Exact Cycles equality is not implied by this image-level gate.
+    // Preserve the baseline's Cycles parity independently of timing hardware.
+    const baselineError = baseline.results.find(
+      (result) => result.id === "nema17",
+    )!.blenderError!
     expect(realError.mae).toBeLessThan(oldError.mae * 0.7)
-    expect(realError.mae).toBeLessThan(0.08)
+    expect(realError.mae).toBeLessThanOrEqual(baselineError.mae * 1.05)
+    expect(realError.rmse).toBeLessThanOrEqual(baselineError.rmse * 1.05)
     await expect(sideBySide(realistic, reference)).toMatchPngSnapshot(
       import.meta.path,
     )
