@@ -1,0 +1,29 @@
+{
+  "blenderVersion": "4.3.2",
+  "engine": "CYCLES",
+  "samples": 500,
+  "adaptiveSampling": false,
+  "denoising": false,
+  "seed": 0,
+  "maxBounces": 8,
+  "viewTransform": "Standard",
+  "glbSha256": "736d659f9d020ba8634d5c1c9933c3aa5274fed6795dc2f7e2a39083567d3877",
+  "environmentSha256": "dea1040a9d08e69a01cb00c77498ef7c6fa3565ce2536488ebbdf8c4476b2d76",
+  "views": [
+    {
+      "name": "front",
+      "seconds": 180.61339762399984,
+      "sha256": "0ebcd9a85fd6c61e7e2ef109b77410c95b909667e1011579a2d171239a7aba09"
+    },
+    {
+      "name": "back",
+      "seconds": 147.67518495600007,
+      "sha256": "d8296e3ef77c39eba500437d9c58d835e590f983ab22f003ba2e4c162bca4e77"
+    },
+    {
+      "name": "detail",
+      "seconds": 218.22370502500007,
+      "sha256": "2325c23f0da1a8e6f1ba7f3a173a5ec8a1ffbaeca251993a812125247d00f4cc"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "boardUrl": "https://tscircuit.com/imrishabh18/rp2040-motor-controller",
+  "version": "1.0.42",
+  "releaseId": "e8d285f7-c3d8-46f5-9a54-344fdde0124e",
+  "baselineRevision": "b1a9728189f1311d5a9f2a527160c56f4434837e",
+  "circuitJsonSha256": "34707c3ea003cc69b89c381fcfc587d3797e14e8f6cdaee665689d08d022adeb",
+  "glbSha256": "736d659f9d020ba8634d5c1c9933c3aa5274fed6795dc2f7e2a39083567d3877",
+  "converter": "circuit-json-to-gltf@0.0.144",
+  "svgRenderer": "@resvg/resvg-js@2.6.2",
+  "optimizedSourceSha256": {
+    "lib/render/RayOcclusion.ts": "40111f6870ff25daaad64cab85d12adecf1ae648e2deb21a484ac5679942037a",
+    "lib/render/renderDrawCalls.ts": "1c43b9265f1ff767d8870ef2622e4a8fb4bf4335f3a7ce2f038732b9d115c3d3",
+    "lib/render/renderGLTFToPNGBufferFromGLBBuffer.ts": "34748adfddc6440efe774a23de4a4028129cec474763666593263f6f0c3e48a4",
+    "lib/render/renderGLTFToPNGBufferFromURL.ts": "435e49edd5369c9ae5ae07cd712b3cf2fc1c7c4e95e20a16e9225667218e8a1b",
+    "lib/render/downsampleBitmap.ts": "53b99e11d3dd9d63f1b10c45f85e43f6e277da21e4d346349fe44627d12a0ef6",
+    "lib/render/renderGLTFToPNGFromURL.ts": "d5456752e6acf2655e63f5b6fb9d3b3d7df35b9b39c688e4e2ee33f65a29fb7c",
+    "lib/render/clipMeshToNearPlane.ts": "f19e1ba91ba2bda5f57ecd870d341b9be4e3eef664cce9282e370dbb9426276f",
+    "lib/render/getDefaultRenderOptions.ts": "5c31abea92a460b72f2ecc13d64bc5542b2c0dea19b56f0a826758d9aeaaf6c8",
+    "lib/render/drawDebugPoints.ts": "f2ac9cc4317d77a539f74860035642787672c585c627e2e8436a7496e48b0326",
+    "lib/render/StudioLighting.ts": "942e5f3ad76f2321f7227eddb17af5e8ba43c04108084f37e89b087057c493eb",
+    "lib/render/resolveRenderOptions.ts": "13d648d199dbcb96497c5c8e086fbf1369f221fbbd52062004369927119422b6",
+    "lib/render/drawInfiniteGrid.ts": "480c5548427de1fcfdab5f08ddae3d8919edc3478b84d3816b47afed2218324b",
+    "lib/render/SoftwareRenderer.ts": "def0dcdcea877384794eaa4654ec1a22a128aa424e629ec0a7bd3848ddaae876",
+    "lib/render/renderGLTFToPNGBuffer.ts": "9cdc8d3094c0c05a8bb516868858ec65ad144c0476ad19f192b1bd9e782cc3d1",
+    "lib/render/GeometryDenoiser.ts": "4f8424e68e86a350cc0f920687faa5bec5d5cb3b6033ded554f93dbb4d1a575e",
+    "lib/render/renderGLTFToPNGFromGLB.ts": "b1fa80dd74ce6e36696714b73d7e1a526a6d5fad3cc674f619df86f461f4c6b9"
+  },
+  "verification": {
+    "tests": 63,
+    "failures": 0,
+    "typecheck": "passed",
+    "freshBlenderBoardReferenceSamples": 500,
+    "additionalNema17BlenderMae": 0.032673536673933,
+    "additionalNema17BlenderRmse": 0.0450439124523069,
+    "assertions": 1237,
+    "formatting": "passed",
+    "flatSurfaceGrainComparison": "grain.json"
+  },
+  "initialOptimizationRevision": "fb2a90b32269bc20387abd1055c4a9d037edfd72",
+  "qualityRefinement": {
+    "phasePattern": "interleaved gradient noise",
+    "denoiser": "separable 9-tap binomial; existing material/normal/depth/albedo rejection thresholds",
+    "intermediateBufferBytesPerInternalPixel": 12,
+    "visualReview": "front/back/detail plus enlarged connector crop; board text, traces, silhouettes and narrow texture features retained"
+  }
+}

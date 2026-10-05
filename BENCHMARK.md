@@ -71,3 +71,125 @@ terms, caches repeated secondary-hit irradiance, and skips diffuse rays only
 when a fully metallic surface makes their contribution zero. Resolution,
 supersampling, contributing lighting sample counts, materials, denoising, and
 the Blender reference are unchanged. Regular rendering uses the existing path.
+
+## RP2040 motor-controller: 500-sample Blender baseline and 2× gate
+
+The board is [imrishabh18/rp2040-motor-controller](https://tscircuit.com/imrishabh18/rp2040-motor-controller),
+release **1.0.42**, exported with its 108 CAD components and board textures through
+`circuit-json-to-gltf@0.0.144` and `@resvg/resvg-js@2.6.2`. Both renderers use the
+same embedded GLB (SHA-256 in `benchmarks/rp2040-motor-controller/provenance.json`).
+Baseline PoppyGL is commit `b1a9728189f1311d5a9f2a527160c56f4434837e` (0.0.33).
+
+Measured on Linux x64, Bun 1.4.2, Intel Xeon Platinum 8573C, 5 logical CPUs.
+Output is 600×600 with 2× supersampling, one warmup and five measured renders
+per view. Medians include each render's BVH/setup, shading, denoising, downsampling
+and PNG encoding; GLB/texture loading is excluded. Cached lighting tables are
+warmed; first-view warmup time is also recorded. Blender and tests were stopped
+during the timing runs. These are local measured results, not hardware-independent
+latency guarantees or a claim about complete cold API startup.
+
+| View | Baseline median | Optimized median | Speedup |
+| --- | ---: | ---: | ---: |
+| Front | 12.521 s | 4.540 s | 2.76× |
+| Back | 4.760 s | 2.257 s | 2.11× |
+| Detail | 13.920 s | 5.493 s | 2.53× |
+
+Every view passes **at least 2× speedup**. The maximum relative increase in
+Blender RGB MAE or RMSE, across both foreground and whole-image checks, is
+**0.47%**, below the 5% acceptance limit. Errors are measured on encoded
+sRGB composited over the same gray background. Foreground uses the union of
+reference, baseline, and candidate alpha masks, so empty background cannot hide
+a regression. Absolute errors and per-run samples are committed as JSON.
+
+The fresh reference uses Blender **4.3.2**, Cycles, **500 samples per internal pixel**,
+adaptive sampling disabled, seed 0, eight bounces, Standard color transform and
+no denoising (this Blender build lacks OIDN). It uses the same analytic studio
+environment, material/geometry data, camera matrices and viewport alignment;
+1200×1200 references are box-downsampled with matching integer rounding. No floor
+or extra geometry is added. Baseline material limitations remain: PoppyGL does
+not implement all Blender/glTF shading features.
+
+![Front: Cycles 500 / baseline / optimized](docs/images/rp2040-front-comparison.png)
+![Back: Cycles 500 / baseline / optimized](docs/images/rp2040-back-comparison.png)
+![Detail: Cycles 500 / baseline / optimized](docs/images/rp2040-detail-comparison.png)
+
+The new renderer transforms indexed vertices once, uses binned SAH and a
+widest-centroid search for small subtrees, and shades only the opaque triangles
+that survive the original Float32 depth-test order. Lines, cutouts and blended
+surfaces retain their rendering order. Studio shading avoids discarded diffuse
+lighting calculations, caches flat-normal irradiance and roughness-dependent GGX
+rotation samples, and preblends specular lookup tables in Float64 (capped at 16
+roughness values per render). It uses four shadow samples per softbox, four
+reflection samples and two diffuse-bounce samples, integrated by the
+geometry-guided denoiser and supersampling. Prefiltering remains at 128 samples.
+Resolution, geometry, textures, materials and supersampling are unchanged.
+
+### Quality refinement after visual feedback
+
+The initial optimization passed the whole-image error gate but increased visible
+grain on component surfaces. The refined renderer uses interleaved gradient noise
+for a more even angular distribution across neighboring pixels, and a separable
+9-tap binomial denoiser with the existing material, normal, depth and albedo guides.
+The two passes require 18 neighbor checks instead of a 9×9 square kernel's 81;
+only rows containing guides are scanned. The wider support smooths stochastic
+shading while preserving silhouettes, lettering and narrow texture features.
+This adds one Float32 RGB intermediate buffer (12 bytes per internal pixel).
+
+Flat-reference foreground high-frequency error RMS versus Blender falls by
+**46.1% in the front view** and **33.5% in the detail view** relative to the initial
+optimization (2.1% in back). These checks select smooth reference areas and exclude
+edges; they measure grain rather than general perceptual similarity. The refined
+front/detail are also 24.9%/16.2% lower than the original renderer on this metric.
+The full-image and foreground MAE/RMSE comparisons still pass the 5% gate.
+
+![Enlarged connector crop: Blender / original / initial optimization / refinement](docs/images/rp2040-quality-refinement.png)
+
+Initial results are preserved in `initial-optimized.json` and
+`initial-comparison.json`; `grain.json` records the refinement metric and mask definition.
+The initial optimization is commit `fb2a90b32269bc20387abd1055c4a9d037edfd72`.
+Given render directories from that revision and the refined revision, reproduce:
+
+```sh
+python scripts/measure-board-grain.py baseline initial optimized
+```
+
+Validation: **63 tests pass**, TypeScript `--noEmit` passes, and Python scripts
+compile. New tests compare the optimized opaque path pixel-for-pixel with the
+immediate shading path for depth ties, textures/emission, clipping, cutouts,
+transparency and lines. An analytic ray test checks binned closest-hit traversal
+and finite limits. Updated realistic snapshots were visually reviewed. The
+existing NEMA17 512-sample Blender parity test passes its unchanged 5% bound
+(MAE 0.0326735367, RMSE 0.0450439125; better than the initial optimization).
+New denoiser tests check flat-surface variance, one-pixel texture lines and
+material/normal/depth/silhouette boundaries, with visual snapshots.
+
+### Reproduce
+
+```sh
+bun install --frozen-lockfile
+mkdir -p work/board-export
+bun add --cwd work/board-export circuit-json-to-gltf@0.0.144 @resvg/resvg-js@2.6.2
+bun scripts/download-rp2040-board.ts board.glb work/board-export
+```
+
+Install Python `numpy` and `Pillow`, and a Blender build with Cycles. On the clean
+baseline revision, copy these benchmark scripts into the checkout, then run:
+
+```sh
+bun scripts/benchmark-board.ts board.glb baseline 600 5
+blender -b -t 5 --python scripts/render-board-blender.py -- board.glb baseline
+python scripts/compare-board.py baseline
+```
+
+On the optimized revision, using the exact same GLB, machine and runtime:
+
+```sh
+bun scripts/benchmark-board.ts board.glb optimized 600 5
+python scripts/compare-board.py baseline optimized
+```
+
+The second comparison exits nonzero if any view is below 2× or its foreground
+or whole-image Blender MAE/RMSE increases by more than 5%. It also writes
+side-by-side PNGs for visual review. Scene, camera, environment and runtime
+mismatches are rejected. The board GLB is downloaded/exported rather than
+committed; its full provenance and reference PNG hashes are recorded.

@@ -1,0 +1,109 @@
+{
+  "status": "candidate-compared",
+  "qualityPolicy": "Each view: at least 2x median speedup; Blender MAE and RMSE increase at most 5%, for both whole image and foreground. Visual review also required.",
+  "views": [
+    {
+      "name": "front",
+      "baselineMedianMs": 12520.861422999995,
+      "baselineBlenderWhole": {
+        "mae": 0.008141988821963063,
+        "rmse": 0.025703431357417296,
+        "psnrDb": 31.800177906824185
+      },
+      "baselineBlenderForeground": {
+        "mae": 0.047993646552596116,
+        "rmse": 0.06240476156367433,
+        "psnrDb": 24.095645436500725
+      },
+      "candidateMedianMs": 4539.638182999999,
+      "speedup": 2.7581188011608537,
+      "candidateBlenderWhole": {
+        "mae": 0.008179571489598018,
+        "rmse": 0.025766079071895313,
+        "psnrDb": 31.779033295258238
+      },
+      "candidateBlenderForeground": {
+        "mae": 0.04821518078783237,
+        "rmse": 0.06255686248864992,
+        "psnrDb": 24.074500824934777
+      },
+      "baselineCandidate": {
+        "mae": 0.0037976404867895606,
+        "rmse": 0.007271853691305367,
+        "psnrDb": 42.767097352866855
+      },
+      "changedRgbaPixels": 39513,
+      "performancePass": true,
+      "qualityPass": true
+    },
+    {
+      "name": "back",
+      "baselineMedianMs": 4760.047357000003,
+      "baselineBlenderWhole": {
+        "mae": 0.002478910333632364,
+        "rmse": 0.013201864633313614,
+        "psnrDb": 37.58729449290111
+      },
+      "baselineBlenderForeground": {
+        "mae": 0.013947357466048558,
+        "rmse": 0.03131488580727503,
+        "psnrDb": 30.0849833531227
+      },
+      "candidateMedianMs": 2257.231093000002,
+      "speedup": 2.1087993036076784,
+      "candidateBlenderWhole": {
+        "mae": 0.002487558488900281,
+        "rmse": 0.013120989113813094,
+        "psnrDb": 37.64066849664719
+      },
+      "candidateBlenderForeground": {
+        "mae": 0.01399601550394006,
+        "rmse": 0.031123048689708162,
+        "psnrDb": 30.13835735686878
+      },
+      "baselineCandidate": {
+        "mae": 0.000860277785709403,
+        "rmse": 0.003846326915985334,
+        "psnrDb": 48.299076119191284
+      },
+      "changedRgbaPixels": 10495,
+      "performancePass": true,
+      "qualityPass": true
+    },
+    {
+      "name": "detail",
+      "baselineMedianMs": 13920.38324499999,
+      "baselineBlenderWhole": {
+        "mae": 0.009745625884631267,
+        "rmse": 0.027268499151755457,
+        "psnrDb": 31.286775296208212
+      },
+      "baselineBlenderForeground": {
+        "mae": 0.04324182311539109,
+        "rmse": 0.057439197725402985,
+        "psnrDb": 24.815832693512796
+      },
+      "candidateMedianMs": 5492.959091999997,
+      "speedup": 2.5342229956297655,
+      "candidateBlenderWhole": {
+        "mae": 0.009759494040753557,
+        "rmse": 0.027265050861486912,
+        "psnrDb": 31.287873756467825
+      },
+      "candidateBlenderForeground": {
+        "mae": 0.04330335680866803,
+        "rmse": 0.05743193414168144,
+        "psnrDb": 24.816931153772405
+      },
+      "baselineCandidate": {
+        "mae": 0.0036113088969443757,
+        "rmse": 0.007010939496494417,
+        "psnrDb": 43.08447561554853
+      },
+      "changedRgbaPixels": 52377,
+      "performancePass": true,
+      "qualityPass": true
+    }
+  ],
+  "numericPass": true
+}

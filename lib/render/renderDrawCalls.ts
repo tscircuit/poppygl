@@ -132,9 +132,38 @@ export function renderDrawCalls(
     ? new StudioLighting(allDrawCalls, camera)
     : undefined
 
+  // Resolve opaque visibility before expensive studio ray queries. Triangle
+  // IDs retain the same Float32 depth-test order, including coplanar ties.
+  // Lines, MASK and BLEND keep their existing paths and rendering order.
+  let winners: Int32Array | undefined
+  const triangleOffsets: number[] = []
+  if (
+    studio &&
+    opaqueDraws.length > 1 &&
+    opaqueDraws.every((dc) => dc.mode !== 1)
+  ) {
+    winners = new Int32Array(renderWidth * renderHeight).fill(-1)
+    let triangleOffset = 0
+    for (const dc of opaqueDraws) {
+      triangleOffsets.push(triangleOffset)
+      triangleOffset += renderer.drawMesh(
+        dc,
+        camera,
+        { dir: options.lightDir, ambient: options.ambient },
+        dc.material,
+        options.cull,
+        options.gamma,
+        studio,
+        { winners, triangleOffset, depthOnly: true },
+      )
+    }
+    renderer.depth.fill(Infinity)
+  }
+
   // Helper to render groups
-  const renderGroup = (dcs: DrawCall[]) => {
-    for (const dc of dcs) {
+  const renderGroup = (dcs: DrawCall[], opaque = false) => {
+    for (let i = 0; i < dcs.length; i++) {
+      const dc = dcs[i]!
       if (dc.mode === 1) {
         renderer.drawLines(dc, camera, options.gamma)
       } else {
@@ -146,13 +175,16 @@ export function renderDrawCalls(
           options.cull,
           options.gamma,
           studio,
+          opaque && winners
+            ? { winners, triangleOffset: triangleOffsets[i]!, depthOnly: false }
+            : undefined,
         )
       }
     }
   }
 
   // Opaque first, then masked, then blended (for correct depth sorting)
-  renderGroup(opaqueDraws)
+  renderGroup(opaqueDraws, true)
   renderGroup(maskDraws)
 
   // Render infinite grid AFTER opaque geometry but BEFORE transparent

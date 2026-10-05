@@ -312,9 +312,22 @@ export class SoftwareRenderer {
     cullBackFaces = true,
     gammaOut = true,
     studio?: StudioLighting,
+    visibility?: {
+      winners: Int32Array
+      triangleOffset: number
+      depthOnly: boolean
+    },
   ) {
     let { positions, normals, uvs, indices, model, colors } = mesh
     const materialId = this.denoiser?.materialId(material) ?? 0
+    const lightDir = light.dir ?? DEFAULT_LIGHT_DIR
+    const ambient = clamp(light.ambient ?? DEFAULT_RENDER_OPTIONS.ambient, 0, 1)
+    const L = studio
+      ? null
+      : vec3.normalize(
+          vec3.create(),
+          vec3.fromValues(lightDir[0], lightDir[1], lightDir[2]),
+        )
 
     const view = camera.view
     const proj = camera.proj
@@ -348,15 +361,21 @@ export class SoftwareRenderer {
     colors = clipped.colors
     idx = clipped.indices!
     vertexCount = positions.length / 3
+    const depthOnly = visibility?.depthOnly ?? false
 
     const vScreen = new Array<[number, number]>(vertexCount)
     const vInvW = new Float32Array(vertexCount)
     const vNDCz = new Float32Array(vertexCount)
-    const vWorldN = new Array<[number, number, number]>(vertexCount)
-    const vWorldP = studio
-      ? new Array<[number, number, number]>(vertexCount)
-      : null
-    const vColor = new Array<[number, number, number]>(vertexCount)
+    const vWorldN = new Array<[number, number, number]>(
+      depthOnly ? 0 : vertexCount,
+    )
+    const vWorldP =
+      studio && !depthOnly
+        ? new Array<[number, number, number]>(vertexCount)
+        : null
+    const vColor = new Array<[number, number, number]>(
+      depthOnly ? 0 : vertexCount,
+    )
 
     for (let i = 0; i < vertexCount; i++) {
       const p = vec4.fromValues(
@@ -382,6 +401,8 @@ export class SoftwareRenderer {
       vScreen[i] = [sx, sy]
       vInvW[i] = invW
       vNDCz[i] = ndcZ
+
+      if (depthOnly) continue
 
       const n = vec3.fromValues(
         useNormals[i * 3 + 0]!,
@@ -477,9 +498,20 @@ export class SoftwareRenderer {
           const z01 = zndc * 0.5 + 0.5
           if (z01 < 0 || z01 > 1) continue
           const di = y * this.width + x
+          if (
+            visibility &&
+            !visibility.depthOnly &&
+            visibility.winners[di] !== visibility.triangleOffset + i / 3
+          )
+            continue
           const depth = this.depth
           if (z01 >= depth[di]!) continue
           depth[di] = z01
+
+          if (visibility?.depthOnly) {
+            visibility.winners[di] = visibility.triangleOffset + i / 3
+            continue
+          }
 
           let baseColor: MutableRGBA = [
             material.baseColorFactor[0]!,
@@ -528,25 +560,9 @@ export class SoftwareRenderer {
             np2 / nlen,
           ]
 
-          const lightDir = light.dir ?? DEFAULT_LIGHT_DIR
-          const ambient = clamp(
-            light.ambient ?? DEFAULT_RENDER_OPTIONS.ambient,
-            0,
-            1,
-          )
-          const L = vec3.normalize(
-            vec3.create(),
-            vec3.fromValues(lightDir[0], lightDir[1], lightDir[2]),
-          )
-          const ndotl = Math.max(
-            0,
-            nrm[0] * -L[0] + nrm[1] * -L[1] + nrm[2] * -L[2],
-          )
-          const lit = ambient + (1 - ambient) * ndotl
-
-          let r = baseColor[0] * lit
-          let g = baseColor[1] * lit
-          let b = baseColor[2] * lit
+          let r = 0,
+            g = 0,
+            b = 0
           if (studio && worldPositions) {
             const position = this.perspInterp(worldPositions, invW, [
               l0,
@@ -558,8 +574,18 @@ export class SoftwareRenderer {
               nrm,
               [baseColor[0], baseColor[1], baseColor[2]],
               material,
-              di,
+              x,
+              y,
             )
+          } else {
+            const ndotl = Math.max(
+              0,
+              nrm[0] * -L![0]! + nrm[1] * -L![1]! + nrm[2] * -L![2]!,
+            )
+            const lit = ambient + (1 - ambient) * ndotl
+            r = baseColor[0] * lit
+            g = baseColor[1] * lit
+            b = baseColor[2] * lit
           }
           // Emission is linear radiance, independent of lights and shadows.
           const emission = material.emissiveFactor ?? [0, 0, 0]
@@ -662,6 +688,7 @@ export class SoftwareRenderer {
         }
       }
     }
+    return idx.length / 3
   }
 }
 

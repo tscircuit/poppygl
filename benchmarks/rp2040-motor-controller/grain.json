@@ -1,0 +1,32 @@
+{
+  "method": "High-frequency RGB error RMS against the same Blender reference, on flat reference foreground pixels only. Flat mask: 3x3 per-channel range below 0.02; eroded by a 5x5 window to exclude edges. High-pass: RGB minus 3x3 box mean. Measures grain, not full-image similarity.",
+  "views": [
+    {
+      "name": "front",
+      "flatReferencePixels": 7033,
+      "originalHighFrequencyRmse": 0.002381939034326785,
+      "initialOptimizationHighFrequencyRmse": 0.003318820961120793,
+      "refinedHighFrequencyRmse": 0.0017883596457716788,
+      "reductionVsInitialPercent": 46.11460917229668,
+      "reductionVsOriginalPercent": 24.920007607284177
+    },
+    {
+      "name": "back",
+      "flatReferencePixels": 17733,
+      "originalHighFrequencyRmse": 0.0014569372033430327,
+      "initialOptimizationHighFrequencyRmse": 0.0014663133917321958,
+      "refinedHighFrequencyRmse": 0.0014352352548205566,
+      "reductionVsInitialPercent": 2.119474396597154,
+      "reductionVsOriginalPercent": 1.4895596373460496
+    },
+    {
+      "name": "detail",
+      "flatReferencePixels": 9263,
+      "originalHighFrequencyRmse": 0.002115146690043463,
+      "initialOptimizationHighFrequencyRmse": 0.0026619465659939966,
+      "refinedHighFrequencyRmse": 0.0017714969944614075,
+      "reductionVsInitialPercent": 33.45106858672373,
+      "reductionVsOriginalPercent": 16.247085708036344
+    }
+  ]
+}

@@ -54,15 +54,19 @@ export class RayOcclusion {
       // into solid occluders while that is unsupported.
       if (dc.material.alphaMode === "MASK") continue
       const count = dc.indices?.length ?? dc.positions.length / 3
-      const vertex = (index: number): V3 => {
-        const i = (dc.indices?.[index] ?? index) * 3
+      // Indexed meshes reuse vertices across faces. Transform each one once,
+      // keeping gl-matrix's existing Float32 rounding before building bounds.
+      const worldVertices: V3[] = []
+      for (let i = 0; i < dc.positions.length; i += 3) {
         const p = vec3.transformMat4(
           vec3.create(),
           [dc.positions[i]!, dc.positions[i + 1]!, dc.positions[i + 2]!],
           dc.model,
         )
-        return [p[0], p[1], p[2]]
+        worldVertices.push([p[0], p[1], p[2]])
       }
+      const vertex = (index: number): V3 =>
+        worldVertices[dc.indices?.[index] ?? index]!
       for (let i = 0; i < count; i += 3) {
         const p = vertex(i),
           q = vertex(i + 1),
@@ -147,15 +151,20 @@ export class RayOcclusion {
 
   private build(triangles: Triangle[]): Node {
     const min: V3 = [Infinity, Infinity, Infinity],
-      max: V3 = [-Infinity, -Infinity, -Infinity]
+      max: V3 = [-Infinity, -Infinity, -Infinity],
+      centerMin: V3 = [Infinity, Infinity, Infinity],
+      centerMax: V3 = [-Infinity, -Infinity, -Infinity]
     for (const t of triangles)
       for (let a = 0; a < 3; a++) {
         min[a] = Math.min(min[a]!, t.min[a]!)
         max[a] = Math.max(max[a]!, t.max[a]!)
+        centerMin[a] = Math.min(centerMin[a]!, t.center[a]!)
+        centerMax[a] = Math.max(centerMax[a]!, t.center[a]!)
       }
     if (triangles.length <= 8) return { min, max, triangles }
-    // Surface-area splits isolate huge studio-floor triangles. Median splits
-    // mix them into many nodes, making almost every background ray expensive.
+    // Binned surface-area splits keep the floor/large PCB faces isolated without
+    // sorting every subtree three times. Float64 bounds preserve ray precision.
+    const binCount = 16
     const area = (lo: V3, hi: V3) => {
       const x = hi[0] - lo[0],
         y = hi[1] - lo[1],
@@ -163,45 +172,94 @@ export class RayOcclusion {
       return 2 * (x * y + y * z + z * x)
     }
     let bestCost = Infinity,
-      middle = triangles.length >> 1,
-      best = triangles
+      bestAxis = -1,
+      bestSplit = 0,
+      bestMin = 0,
+      bestScale = 0
+    let longestAxis = 0
+    for (let a = 1; a < 3; a++)
+      if (
+        centerMax[a]! - centerMin[a]! >
+        centerMax[longestAxis]! - centerMin[longestAxis]!
+      )
+        longestAxis = a
     for (let axis = 0; axis < 3; axis++) {
-      const sorted = triangles
-        .slice()
-        .sort((a, b) => a.center[axis]! - b.center[axis]!)
-      const suffix = new Float64Array(sorted.length)
-      let lo: V3 = [Infinity, Infinity, Infinity],
-        hi: V3 = [-Infinity, -Infinity, -Infinity]
-      for (let i = sorted.length - 1; i >= 0; i--) {
+      // Retain full SAH near the root, then bin along the widest centroid axis
+      // to avoid paying for three equivalent small-subtree searches.
+      if (triangles.length <= 4096 && axis !== longestAxis) continue
+      const loCenter = centerMin[axis]!,
+        hiCenter = centerMax[axis]!
+      if (loCenter === hiCenter) continue
+      const scale = binCount / (hiCenter - loCenter)
+      const counts = new Uint32Array(binCount)
+      const bounds = new Float64Array(binCount * 6)
+      for (let i = 0; i < binCount; i++) {
+        bounds.fill(Infinity, i * 6, i * 6 + 3)
+        bounds.fill(-Infinity, i * 6 + 3, i * 6 + 6)
+      }
+      for (const t of triangles) {
+        const bin = Math.min(
+          binCount - 1,
+          Math.floor((t.center[axis]! - loCenter) * scale),
+        )
+        counts[bin]!++
+        const offset = bin * 6
         for (let a = 0; a < 3; a++) {
-          lo[a] = Math.min(lo[a]!, sorted[i]!.min[a]!)
-          hi[a] = Math.max(hi[a]!, sorted[i]!.max[a]!)
+          bounds[offset + a] = Math.min(bounds[offset + a]!, t.min[a]!)
+          bounds[offset + a + 3] = Math.max(bounds[offset + a + 3]!, t.max[a]!)
         }
-        suffix[i] = area(lo, hi)
+      }
+      const suffixCost = new Float64Array(binCount)
+      let lo: V3 = [Infinity, Infinity, Infinity],
+        hi: V3 = [-Infinity, -Infinity, -Infinity],
+        count = 0
+      for (let i = binCount - 1; i >= 0; i--) {
+        count += counts[i]!
+        if (counts[i])
+          for (let a = 0; a < 3; a++) {
+            lo[a] = Math.min(lo[a]!, bounds[i * 6 + a]!)
+            hi[a] = Math.max(hi[a]!, bounds[i * 6 + a + 3]!)
+          }
+        suffixCost[i] = count ? area(lo, hi) * count : 0
       }
       lo = [Infinity, Infinity, Infinity]
       hi = [-Infinity, -Infinity, -Infinity]
-      for (let i = 1; i < sorted.length; i++) {
-        const triangle = sorted[i - 1]!
-        for (let a = 0; a < 3; a++) {
-          lo[a] = Math.min(lo[a]!, triangle.min[a]!)
-          hi[a] = Math.max(hi[a]!, triangle.max[a]!)
-        }
-        if (triangle.center[axis] === sorted[i]!.center[axis]) continue
-        const cost = area(lo, hi) * i + suffix[i]! * (sorted.length - i)
+      count = 0
+      for (let i = 0; i < binCount - 1; i++) {
+        count += counts[i]!
+        if (counts[i])
+          for (let a = 0; a < 3; a++) {
+            lo[a] = Math.min(lo[a]!, bounds[i * 6 + a]!)
+            hi[a] = Math.max(hi[a]!, bounds[i * 6 + a + 3]!)
+          }
+        if (!count || count === triangles.length) continue
+        const cost = area(lo, hi) * count + suffixCost[i + 1]!
         if (cost < bestCost) {
           bestCost = cost
-          middle = i
-          best = sorted
+          bestAxis = axis
+          bestSplit = i
+          bestMin = loCenter
+          bestScale = scale
         }
       }
     }
-    return {
-      min,
-      max,
-      left: this.build(best.slice(0, middle)),
-      right: this.build(best.slice(middle)),
+    let left: Triangle[], right: Triangle[]
+    if (bestAxis < 0) {
+      const middle = triangles.length >> 1
+      left = triangles.slice(0, middle)
+      right = triangles.slice(middle)
+    } else {
+      left = []
+      right = []
+      for (const t of triangles) {
+        const bin = Math.min(
+          binCount - 1,
+          Math.floor((t.center[bestAxis]! - bestMin) * bestScale),
+        )
+        ;(bin <= bestSplit ? left : right).push(t)
+      }
     }
+    return { min, max, left: this.build(left), right: this.build(right) }
   }
 
   private prepareRay(direction: V3) {
