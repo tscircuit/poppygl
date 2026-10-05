@@ -13,8 +13,11 @@ export class GeometryDenoiser {
   private albedo: Float32Array
   private radiance: Float32Array
   private distance: Float32Array
+  private horizontal: Float32Array
   private materials = new WeakMap<Material, number>()
   private nextId = 1
+  private first = Infinity
+  private last = -1
 
   constructor(
     private width: number,
@@ -26,6 +29,7 @@ export class GeometryDenoiser {
     this.albedo = new Float32Array(count * 3)
     this.radiance = new Float32Array(count * 3)
     this.distance = new Float32Array(count)
+    this.horizontal = new Float32Array(count * 3)
   }
 
   materialId(material: Material) {
@@ -45,6 +49,8 @@ export class GeometryDenoiser {
     radiance: V3,
     distance: number,
   ) {
+    if (index < this.first) this.first = index
+    if (index > this.last) this.last = index
     this.ids[index] = id
     this.normals.set(n, index * 3)
     this.albedo.set(albedo, index * 3)
@@ -53,62 +59,77 @@ export class GeometryDenoiser {
   }
 
   apply(output: Uint8Array | Uint8ClampedArray, gamma: boolean) {
-    const kernel = [1, 4, 6, 4, 1]
-    for (let y = 0; y < this.height; y++)
-      for (let x = 0; x < this.width; x++) {
-        const index = y * this.width + x,
-          id = this.ids[index]!
-        if (id === 0) continue
-        const k = index * 3,
-          n = this.normals,
-          a = this.albedo
-        let r = 0,
-          g = 0,
-          b = 0,
-          total = 0
-        for (let dy = -2; dy <= 2; dy++)
-          for (let dx = -2; dx <= 2; dx++) {
-            const px = x + dx,
-              py = y + dy
+    // Separable binomial filtering spends fewer guide checks than a square
+    // kernel, so a wider support can reduce ray noise without a larger budget.
+    const kernel = [1, 8, 28, 56, 70, 56, 28, 8, 1]
+    const radius = 4
+    const n = this.normals,
+      a = this.albedo,
+      ids = this.ids
+    const firstRow = Math.floor(this.first / this.width)
+    const lastRow = Math.floor(this.last / this.width)
+    for (let pass = 0; pass < 2; pass++) {
+      const source = pass === 0 ? this.radiance : this.horizontal
+      for (let y = firstRow; y <= lastRow; y++)
+        for (let x = 0; x < this.width; x++) {
+          const index = y * this.width + x,
+            id = ids[index]!
+          if (id === 0) continue
+          const k = index * 3,
+            distance = this.distance[index]!
+          const nx = n[k]!,
+            ny = n[k + 1]!,
+            nz = n[k + 2]!
+          const ar = a[k]!,
+            ag = a[k + 1]!,
+            ab = a[k + 2]!
+          let r = 0,
+            g = 0,
+            b = 0,
+            total = 0
+          for (let delta = -radius; delta <= radius; delta++) {
+            const px = pass === 0 ? x + delta : x,
+              py = pass === 0 ? y : y + delta
             if (px < 0 || py < 0 || px >= this.width || py >= this.height)
               continue
             const neighbor = py * this.width + px,
               p = neighbor * 3
-            if (this.ids[neighbor] !== id) continue
-            if (
-              Math.abs(this.distance[index]! - this.distance[neighbor]!) >
-              this.distance[index]! * 0.02
-            )
+            if (ids[neighbor] !== id) continue
+            if (Math.abs(distance - this.distance[neighbor]!) > distance * 0.02)
               continue
+            if (nx * n[p]! + ny * n[p + 1]! + nz * n[p + 2]! < 0.98) continue
             if (
-              n[k]! * n[p]! + n[k + 1]! * n[p + 1]! + n[k + 2]! * n[p + 2]! <
-              0.98
-            )
-              continue
-            if (
-              Math.abs(a[k]! - a[p]!) +
-                Math.abs(a[k + 1]! - a[p + 1]!) +
-                Math.abs(a[k + 2]! - a[p + 2]!) >
+              Math.abs(ar - a[p]!) +
+                Math.abs(ag - a[p + 1]!) +
+                Math.abs(ab - a[p + 2]!) >
               0.03
             )
               continue
-            const weight = kernel[dy + 2]! * kernel[dx + 2]!
+            const weight = kernel[delta + radius]!
             total += weight
-            r += this.radiance[p]! * weight
-            g += this.radiance[p + 1]! * weight
-            b += this.radiance[p + 2]! * weight
+            r += source[p]! * weight
+            g += source[p + 1]! * weight
+            b += source[p + 2]! * weight
           }
-        if (!total) continue
-        const encode = (value: number) =>
-          Math.floor(
-            255 *
-              (gamma
-                ? srgbEncodeLinear01(Math.max(0, Math.min(1, value / total)))
-                : Math.max(0, Math.min(1, value / total))),
-          )
-        output[index * 4] = encode(r)
-        output[index * 4 + 1] = encode(g)
-        output[index * 4 + 2] = encode(b)
-      }
+          if (pass === 0) {
+            this.horizontal[k] = r / total
+            this.horizontal[k + 1] = g / total
+            this.horizontal[k + 2] = b / total
+          } else {
+            const encode = (value: number) =>
+              Math.floor(
+                255 *
+                  (gamma
+                    ? srgbEncodeLinear01(
+                        Math.max(0, Math.min(1, value / total)),
+                      )
+                    : Math.max(0, Math.min(1, value / total))),
+              )
+            output[index * 4] = encode(r)
+            output[index * 4 + 1] = encode(g)
+            output[index * 4 + 2] = encode(b)
+          }
+        }
+    }
   }
 }

@@ -574,7 +574,8 @@ export class SoftwareRenderer {
               nrm,
               [baseColor[0], baseColor[1], baseColor[2]],
               material,
-              di,
+              x,
+              y,
             )
           } else {
             const ndotl = Math.max(

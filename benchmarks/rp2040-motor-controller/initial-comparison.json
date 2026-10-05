@@ -15,24 +15,24 @@
         "rmse": 0.06240476156367433,
         "psnrDb": 24.095645436500725
       },
-      "candidateMedianMs": 4539.638182999999,
-      "speedup": 2.7581188011608537,
+      "candidateMedianMs": 4515.693421,
+      "speedup": 2.772743907895158,
       "candidateBlenderWhole": {
-        "mae": 0.008179571489598018,
-        "rmse": 0.025766079071895313,
-        "psnrDb": 31.779033295258238
+        "mae": 0.008188163113902061,
+        "rmse": 0.025854023163648484,
+        "psnrDb": 31.749437328522014
       },
       "candidateBlenderForeground": {
-        "mae": 0.04821518078783237,
-        "rmse": 0.06255686248864992,
-        "psnrDb": 24.074500824934777
+        "mae": 0.048265824849028895,
+        "rmse": 0.06277037989807577,
+        "psnrDb": 24.044904858198556
       },
       "baselineCandidate": {
-        "mae": 0.0037976404867895606,
-        "rmse": 0.007271853691305367,
-        "psnrDb": 42.767097352866855
+        "mae": 0.00397881074282796,
+        "rmse": 0.0074349963496113305,
+        "psnrDb": 42.574384807384035
       },
-      "changedRgbaPixels": 39513,
+      "changedRgbaPixels": 40347,
       "performancePass": true,
       "qualityPass": true
     },
@@ -49,24 +49,24 @@
         "rmse": 0.03131488580727503,
         "psnrDb": 30.0849833531227
       },
-      "candidateMedianMs": 2257.231093000002,
-      "speedup": 2.1087993036076784,
+      "candidateMedianMs": 2242.7567280000003,
+      "speedup": 2.1224091305011137,
       "candidateBlenderWhole": {
-        "mae": 0.002487558488900281,
-        "rmse": 0.013120989113813094,
-        "psnrDb": 37.64066849664719
+        "mae": 0.0024867771227590524,
+        "rmse": 0.013200486865420233,
+        "psnrDb": 37.588201013661596
       },
       "candidateBlenderForeground": {
-        "mae": 0.01399601550394006,
-        "rmse": 0.031123048689708162,
-        "psnrDb": 30.13835735686878
+        "mae": 0.013991619220324754,
+        "rmse": 0.03131161773526789,
+        "psnrDb": 30.085889873883186
       },
       "baselineCandidate": {
-        "mae": 0.000860277785709403,
-        "rmse": 0.003846326915985334,
-        "psnrDb": 48.299076119191284
+        "mae": 0.0008686581487740253,
+        "rmse": 0.003618920111739698,
+        "psnrDb": 48.828420078170716
       },
-      "changedRgbaPixels": 10495,
+      "changedRgbaPixels": 9786,
       "performancePass": true,
       "qualityPass": true
     },
@@ -83,24 +83,24 @@
         "rmse": 0.057439197725402985,
         "psnrDb": 24.815832693512796
       },
-      "candidateMedianMs": 5492.959091999997,
-      "speedup": 2.5342229956297655,
+      "candidateMedianMs": 5473.769626000001,
+      "speedup": 2.543107254437454,
       "candidateBlenderWhole": {
-        "mae": 0.009759494040753557,
-        "rmse": 0.027265050861486912,
-        "psnrDb": 31.287873756467825
+        "mae": 0.009769500192233755,
+        "rmse": 0.02736441338893466,
+        "psnrDb": 31.25627714789296
       },
       "candidateBlenderForeground": {
-        "mae": 0.04330335680866803,
-        "rmse": 0.05743193414168144,
-        "psnrDb": 24.816931153772405
+        "mae": 0.043347754596711065,
+        "rmse": 0.05764123439795167,
+        "psnrDb": 24.785334545197543
       },
       "baselineCandidate": {
-        "mae": 0.0036113088969443757,
-        "rmse": 0.007010939496494417,
-        "psnrDb": 43.08447561554853
+        "mae": 0.003693239104714234,
+        "rmse": 0.006873078113221288,
+        "psnrDb": 43.25697440525197
       },
-      "changedRgbaPixels": 52377,
+      "changedRgbaPixels": 54298,
       "performancePass": true,
       "qualityPass": true
     }

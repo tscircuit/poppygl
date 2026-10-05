@@ -327,7 +327,8 @@ export class StudioLighting {
     n: V3,
     base: V3,
     material: Material,
-    sampleIndex = 0,
+    pixelX = 0,
+    pixelY = 0,
   ): V3 {
     const v = normalize([
       this.eye[0] - position[0],
@@ -365,12 +366,11 @@ export class StudioLighting {
     const specColor: V3 = f0.map(
       (c, j) => environment.ambient[j]! * (c * A + B),
     ) as V3
-    // Rotate each pixel's stratification instead of producing visible bands in
-    // soft shadows. Supersampling integrates these deterministic samples.
-    let bits = sampleIndex + 1
-    bits = Math.imul(bits ^ (bits >>> 16), 0x7feb352d)
-    bits = Math.imul(bits ^ (bits >>> 15), 0x846ca68b)
-    const hash = ((bits ^ (bits >>> 16)) >>> 0) / 4294967296
+    // Interleaved gradient noise distributes phase across neighboring pixels.
+    // A small filtering/supersampling footprint sees a more even angular
+    // distribution than independent hashes, reducing clumped ray noise.
+    const gradient = (0.06711056 * pixelX + 0.00583715 * pixelY) % 1
+    const hash = (52.9829189 * gradient) % 1
     const phase = hash * 2 * Math.PI,
       cosPhase = Math.cos(phase),
       sinPhase = Math.sin(phase)

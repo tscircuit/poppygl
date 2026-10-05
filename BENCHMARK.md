@@ -90,13 +90,13 @@ latency guarantees or a claim about complete cold API startup.
 
 | View | Baseline median | Optimized median | Speedup |
 | --- | ---: | ---: | ---: |
-| Front | 12.521 s | 4.516 s | 2.77× |
-| Back | 4.760 s | 2.243 s | 2.12× |
-| Detail | 13.920 s | 5.474 s | 2.54× |
+| Front | 12.521 s | 4.540 s | 2.76× |
+| Back | 4.760 s | 2.257 s | 2.11× |
+| Detail | 13.920 s | 5.493 s | 2.53× |
 
 Every view passes **at least 2× speedup**. The maximum relative increase in
 Blender RGB MAE or RMSE, across both foreground and whole-image checks, is
-**0.59%**, below the 5% acceptance limit. Errors are measured on encoded
+**0.47%**, below the 5% acceptance limit. Errors are measured on encoded
 sRGB composited over the same gray background. Foreground uses the union of
 reference, baseline, and candidate alpha masks, so empty background cannot hide
 a regression. Absolute errors and per-run samples are committed as JSON.
@@ -120,17 +120,48 @@ surfaces retain their rendering order. Studio shading avoids discarded diffuse
 lighting calculations, caches flat-normal irradiance and roughness-dependent GGX
 rotation samples, and preblends specular lookup tables in Float64 (capped at 16
 roughness values per render). It uses four shadow samples per softbox, four
-reflection samples and two diffuse-bounce samples, integrated by the existing
+reflection samples and two diffuse-bounce samples, integrated by the
 geometry-guided denoiser and supersampling. Prefiltering remains at 128 samples.
-Resolution, geometry, textures, materials, denoiser and supersampling are unchanged.
+Resolution, geometry, textures, materials and supersampling are unchanged.
 
-Validation: **61 tests pass**, TypeScript `--noEmit` passes, and Python scripts
+### Quality refinement after visual feedback
+
+The initial optimization passed the whole-image error gate but increased visible
+grain on component surfaces. The refined renderer uses interleaved gradient noise
+for a more even angular distribution across neighboring pixels, and a separable
+9-tap binomial denoiser with the existing material, normal, depth and albedo guides.
+The two passes require 18 neighbor checks instead of a 9×9 square kernel's 81;
+only rows containing guides are scanned. The wider support smooths stochastic
+shading while preserving silhouettes, lettering and narrow texture features.
+This adds one Float32 RGB intermediate buffer (12 bytes per internal pixel).
+
+Flat-reference foreground high-frequency error RMS versus Blender falls by
+**46.1% in the front view** and **33.5% in the detail view** relative to the initial
+optimization (2.1% in back). These checks select smooth reference areas and exclude
+edges; they measure grain rather than general perceptual similarity. The refined
+front/detail are also 24.9%/16.2% lower than the original renderer on this metric.
+The full-image and foreground MAE/RMSE comparisons still pass the 5% gate.
+
+![Enlarged connector crop: Blender / original / initial optimization / refinement](docs/images/rp2040-quality-refinement.png)
+
+Initial results are preserved in `initial-optimized.json` and
+`initial-comparison.json`; `grain.json` records the refinement metric and mask definition.
+The initial optimization is commit `fb2a90b32269bc20387abd1055c4a9d037edfd72`.
+Given render directories from that revision and the refined revision, reproduce:
+
+```sh
+python scripts/measure-board-grain.py baseline initial optimized
+```
+
+Validation: **63 tests pass**, TypeScript `--noEmit` passes, and Python scripts
 compile. New tests compare the optimized opaque path pixel-for-pixel with the
 immediate shading path for depth ties, textures/emission, clipping, cutouts,
 transparency and lines. An analytic ray test checks binned closest-hit traversal
 and finite limits. Updated realistic snapshots were visually reviewed. The
 existing NEMA17 512-sample Blender parity test passes its unchanged 5% bound
-(MAE 0.0328553522, RMSE 0.0453221692; about 1.6% above its baseline).
+(MAE 0.0326735367, RMSE 0.0450439125; better than the initial optimization).
+New denoiser tests check flat-surface variance, one-pixel texture lines and
+material/normal/depth/silhouette boundaries, with visual snapshots.
 
 ### Reproduce
 

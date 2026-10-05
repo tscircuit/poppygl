@@ -17,20 +17,30 @@
     "lib/render/clipMeshToNearPlane.ts": "f19e1ba91ba2bda5f57ecd870d341b9be4e3eef664cce9282e370dbb9426276f",
     "lib/render/getDefaultRenderOptions.ts": "5c31abea92a460b72f2ecc13d64bc5542b2c0dea19b56f0a826758d9aeaaf6c8",
     "lib/render/drawDebugPoints.ts": "f2ac9cc4317d77a539f74860035642787672c585c627e2e8436a7496e48b0326",
-    "lib/render/StudioLighting.ts": "6f2417cb774c779bbcd432eef7ce5a991e876feb6bc34feb25095bdb0fc0cb5f",
+    "lib/render/StudioLighting.ts": "942e5f3ad76f2321f7227eddb17af5e8ba43c04108084f37e89b087057c493eb",
     "lib/render/resolveRenderOptions.ts": "13d648d199dbcb96497c5c8e086fbf1369f221fbbd52062004369927119422b6",
     "lib/render/drawInfiniteGrid.ts": "480c5548427de1fcfdab5f08ddae3d8919edc3478b84d3816b47afed2218324b",
-    "lib/render/SoftwareRenderer.ts": "0144bffda99aa527c177bd27cb2cae9ebea5674891a5c0d26660a88d708cb83f",
+    "lib/render/SoftwareRenderer.ts": "def0dcdcea877384794eaa4654ec1a22a128aa424e629ec0a7bd3848ddaae876",
     "lib/render/renderGLTFToPNGBuffer.ts": "9cdc8d3094c0c05a8bb516868858ec65ad144c0476ad19f192b1bd9e782cc3d1",
-    "lib/render/GeometryDenoiser.ts": "da0cc9d394face9ff15b43d52479216cd7bc0827657782e71294cbff728bf0cf",
+    "lib/render/GeometryDenoiser.ts": "4f8424e68e86a350cc0f920687faa5bec5d5cb3b6033ded554f93dbb4d1a575e",
     "lib/render/renderGLTFToPNGFromGLB.ts": "b1fa80dd74ce6e36696714b73d7e1a526a6d5fad3cc674f619df86f461f4c6b9"
   },
   "verification": {
-    "tests": 61,
+    "tests": 63,
     "failures": 0,
     "typecheck": "passed",
     "freshBlenderBoardReferenceSamples": 500,
-    "additionalNema17BlenderMae": 0.03285535221496593,
-    "additionalNema17BlenderRmse": 0.04532216920826436
+    "additionalNema17BlenderMae": 0.032673536673933,
+    "additionalNema17BlenderRmse": 0.0450439124523069,
+    "assertions": 1237,
+    "formatting": "passed",
+    "flatSurfaceGrainComparison": "grain.json"
+  },
+  "initialOptimizationRevision": "fb2a90b32269bc20387abd1055c4a9d037edfd72",
+  "qualityRefinement": {
+    "phasePattern": "interleaved gradient noise",
+    "denoiser": "separable 9-tap binomial; existing material/normal/depth/albedo rejection thresholds",
+    "intermediateBufferBytesPerInternalPixel": 12,
+    "visualReview": "front/back/detail plus enlarged connector crop; board text, traces, silhouettes and narrow texture features retained"
   }
 }
