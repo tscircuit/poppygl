@@ -36,6 +36,43 @@ test("transparent meshes do not become opaque shadow blockers", () => {
   expect(rays.trace([0, 0, 0], [0, 0, 1])).toBeNull()
 })
 
+test("binned bounds preserve closest hits and finite limits across dispersed triangles", () => {
+  const draws = Array.from({ length: 72 }, (_, i) => {
+    const dc = triangle(0)
+    dc.model = mat4.fromTranslation(mat4.create(), [
+      (i % 8) * 1.7 - 6,
+      Math.floor(i / 8) * 1.3 - 5,
+      i * 0.13 + 1,
+    ])
+    return dc
+  })
+  const rays = new RayOcclusion(draws)
+  for (let i = 0; i < 120; i++) {
+    const origin: [number, number, number] = [
+      (i % 12) * 1.1 - 6.2,
+      Math.floor(i / 12) * 1.1 - 5.3,
+      -2,
+    ]
+    const direction: [number, number, number] = [0.03, -0.02, 1]
+    const limit = i % 2 ? Infinity : 7
+    let expected = Infinity
+    for (const dc of draws) {
+      const t = dc.model[14]! - origin[2]
+      const x = origin[0] + t * direction[0] - dc.model[12]!
+      const y = origin[1] + t * direction[1] - dc.model[13]!
+      if (t > 0 && t < limit && y >= -1 && y <= 1 && Math.abs(x) <= (1 - y) / 2)
+        expected = Math.min(expected, t)
+    }
+    const hit = rays.trace(origin, direction, limit)
+    expect(rays.occluded(origin, direction, limit)).toBe(
+      Number.isFinite(expected),
+    )
+    if (Number.isFinite(expected))
+      expect(hit!.distance).toBeCloseTo(expected, 6)
+    else expect(hit).toBeNull()
+  }
+})
+
 test("cached traversal keeps parallel axes, finite limits, and hit normals independent", () => {
   // Enough triangles to force internal BVH nodes, with widely separated planes.
   const rays = new RayOcclusion(

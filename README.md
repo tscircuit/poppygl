@@ -86,10 +86,12 @@ Realistic mode supports base-color textures and scalar glTF metallic/roughness
 values. Normal maps, metallic/roughness textures, and custom HDR environments
 are not yet supported. Transparent and alpha-cutout surfaces do not cast shadows.
 
-Use realistic mode for saved images. At 600×600 with 2× supersampling, example
-models took 21–39 seconds to render, compared with 0.6–1.6 seconds in regular
-mode on the same machine. Reduce resolution or supersampling for faster output;
-render times vary with model complexity and hardware.
+Use realistic mode for saved images. At 600×600 with 2× supersampling, the RP2040
+motor-controller benchmark takes 2.24–5.47 seconds per warm render across three
+views, a 2.12–2.77× speedup over the previous realistic renderer on the same
+machine. Blender comparison error increases by at most 0.59%. See
+[benchmark results and reproduction steps](BENCHMARK.md#rp2040-motor-controller-500-sample-blender-baseline-and-2-gate).
+Render times vary with model complexity and hardware.
 
 ### Camera and background
 

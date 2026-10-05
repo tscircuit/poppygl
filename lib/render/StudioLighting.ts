@@ -14,6 +14,9 @@ const W = 96,
   H = 48,
   SAMPLES = 128
 const ROUGHNESSES = [0.04, 0.1, 0.18, 0.28, 0.4, 0.55, 0.7, 0.85, 1]
+const SHADOW_SAMPLES = 4,
+  REFLECTION_SAMPLES = 4,
+  DIFFUSE_SAMPLES = 2
 const lobes = environment.lobes.map((l) => ({
   ...l,
   direction: normalize(l.direction as V3),
@@ -71,7 +74,10 @@ function tableLookup(n: V3): Lookup {
   return [iy * W + a, iy * W + b, c * W + a, c * W + b, fx, fy]
 }
 
-function sampleTable(table: Float32Array, lookup: Lookup): number {
+function sampleTable(
+  table: Float32Array | Float64Array,
+  lookup: Lookup,
+): number {
   const [i00, i10, i01, i11, fx, fy] = lookup
   return (
     (table[i00]! * (1 - fx) + table[i10]! * fx) * (1 - fy) +
@@ -195,6 +201,29 @@ export class StudioLighting {
     cross: V3
   }[][]
   private diffuseCache = new WeakMap<Material, { normal: V3; irradiance: V3 }>()
+  private reflectionSamples = new Map<number, V3[]>()
+  private normalDiffuseCache = new WeakMap<
+    Material,
+    { normal: V3; values: number[] }
+  >()
+  private specularCache = new Map<number, Float64Array[]>()
+
+  private blendedSpecular(rough: number, level: number, blend: number) {
+    const cached = this.specularCache.get(rough)
+    if (cached) return cached
+    // Bound per-render memory when a scene has many distinct roughness values.
+    if (this.specularCache.size >= 16) return null
+    const tables = lobes.map((_, j) => {
+      const lo = this.tables.specular[level]![j]!,
+        hi = this.tables.specular[level + 1]![j]!,
+        table = new Float64Array(W * H)
+      for (let i = 0; i < table.length; i++)
+        table[i] = lo[i]! * (1 - blend) + hi[i]! * blend
+      return table
+    })
+    this.specularCache.set(rough, tables)
+    return tables
+  }
 
   constructor(drawCalls: DrawCall[], camera: Camera) {
     this.occlusion = new RayOcclusion(drawCalls)
@@ -202,12 +231,14 @@ export class StudioLighting {
     if (!world)
       throw new Error("Realistic rendering requires an invertible camera view.")
     this.eye = [world[12]!, world[13]!, world[14]!]
-    // Eight stratified directions per softbox. Fixed sampling makes snapshots
+    // Four stratified directions per softbox. Supersampling and the geometry
+    // denoiser integrate pixel-rotated samples without crossing material edges.
+    // Fixed sampling makes snapshots
     // reproducible; visibility comes from geometry rather than painted AO.
     this.shadowDirections = lobes.map((l) => {
       const [t, b] = basis(l.direction)
-      return Array.from({ length: 8 }, (_, i) => {
-        const u = (i + 0.5) / 8,
+      return Array.from({ length: SHADOW_SAMPLES }, (_, i) => {
+        const u = (i + 0.5) / SHADOW_SAMPLES,
           cos = 1 + Math.log(1 - u) / l.sharpness,
           sin = Math.sqrt(Math.max(0, 1 - cos * cos)),
           phi = 2 * Math.PI * radicalInverse(i)
@@ -275,12 +306,14 @@ export class StudioLighting {
     ) as V3
     const pref: V3 = [...environment.ambient] as V3
     const reflectedLookup = tableLookup(reflected)
+    const specularTables = this.blendedSpecular(rough, level, blend)
     for (let j = 0; j < lobes.length; j++) {
-      const value =
-        sampleTable(this.tables.specular[level]![j]!, reflectedLookup) *
-          (1 - blend) +
-        sampleTable(this.tables.specular[level + 1]![j]!, reflectedLookup) *
-          blend
+      const value = specularTables
+        ? sampleTable(specularTables[j]!, reflectedLookup)
+        : sampleTable(this.tables.specular[level]![j]!, reflectedLookup) *
+            (1 - blend) +
+          sampleTable(this.tables.specular[level + 1]![j]!, reflectedLookup) *
+            blend
       for (let k = 0; k < 3; k++) pref[k]! += value * lobes[j]!.color[k]!
     }
     for (let k = 0; k < 3; k++)
@@ -341,8 +374,22 @@ export class StudioLighting {
     const phase = hash * 2 * Math.PI,
       cosPhase = Math.cos(phase),
       sinPhase = Math.sin(phase)
-    const normalLookup = tableLookup(n),
-      reflectedLookup = tableLookup(reflected)
+    // Flat PCB/IC faces share an identical normal across many pixels. Reuse
+    // only the unshadowed lookup; visibility still comes from fresh scene rays.
+    let normalDiffuse = this.normalDiffuseCache.get(material)
+    if (
+      !normalDiffuse ||
+      normalDiffuse.normal.some((value, k) => !Object.is(value, n[k]))
+    ) {
+      const lookup = tableLookup(n)
+      normalDiffuse = {
+        normal: [...n] as V3,
+        values: this.tables.diffuse.map((table) => sampleTable(table, lookup)),
+      }
+      this.normalDiffuseCache.set(material, normalDiffuse)
+    }
+    const reflectedLookup = tableLookup(reflected)
+    const specularTables = this.blendedSpecular(rough, level, blend)
     for (let j = 0; j < lobes.length; j++) {
       const dirs = this.shadowDirections[j]!
       let visible = 0,
@@ -358,14 +405,14 @@ export class StudioLighting {
         if (weight > 0 && !this.occlusion.occluded(origin, l)) visible += weight
       }
       const visibility = total > 0 ? visible / total : 1
-      const diffuse =
-        sampleTable(this.tables.diffuse[j]!, normalLookup) * visibility
+      const diffuse = normalDiffuse.values[j]! * visibility
       const specular =
-        (sampleTable(this.tables.specular[level]![j]!, reflectedLookup) *
-          (1 - blend) +
-          sampleTable(this.tables.specular[level + 1]![j]!, reflectedLookup) *
-            blend) *
-        visibility
+        (specularTables
+          ? sampleTable(specularTables[j]!, reflectedLookup)
+          : sampleTable(this.tables.specular[level]![j]!, reflectedLookup) *
+              (1 - blend) +
+            sampleTable(this.tables.specular[level + 1]![j]!, reflectedLookup) *
+              blend) * visibility
       for (let k = 0; k < 3; k++) {
         color[k]! +=
           lobes[j]!.color[k]! * base[k]! * (1 - metal) * 0.96 * diffuse
@@ -376,8 +423,8 @@ export class StudioLighting {
     // product shot the floor is essential fill, especially for black surfaces.
     const [t, b] = basis(n)
     let blocked = 0
-    for (let i = 0; metal < 1 && i < 4; i++) {
-      const phi = (i * Math.PI) / 2 + phase,
+    for (let i = 0; metal < 1 && i < DIFFUSE_SAMPLES; i++) {
+      const phi = (i * 2 * Math.PI) / DIFFUSE_SAMPLES + phase,
         l = orient(
           0.7 * Math.cos(phi),
           0.7 * Math.sin(phi),
@@ -391,10 +438,11 @@ export class StudioLighting {
         blocked++
         const bounce = this.bounceRadiance(hit, l)
         for (let k = 0; k < 3; k++)
-          color[k]! += (bounce[k]! * base[k]! * (1 - metal) * 0.96) / 4
+          color[k]! +=
+            (bounce[k]! * base[k]! * (1 - metal) * 0.96) / DIFFUSE_SAMPLES
       }
     }
-    const ao = 1 - blocked / 4
+    const ao = 1 - blocked / DIFFUSE_SAMPLES
     for (let k = 0; k < 3; k++)
       color[k]! -=
         environment.ambient[k]! * (1 - ao) * base[k]! * (1 - metal) * 0.96
@@ -404,15 +452,24 @@ export class StudioLighting {
       bounce: V3 = [0, 0, 0]
     let hitWeight = 0,
       totalWeight = 0
-    for (let i = 0; i < 8; i++) {
-      const u = (i + 0.5) / 8,
-        phi = 2 * Math.PI * radicalInverse(i) + phase,
-        a = rough * rough
-      const nh = Math.sqrt((1 - u) / (1 + (a * a - 1) * u)),
-        sin = Math.sqrt(1 - nh * nh)
+    // The GGX half-vector distribution depends only on scalar roughness.
+    // Rotate cached local samples per pixel instead of repeating sqrt/trig.
+    let samples = this.reflectionSamples.get(rough)
+    if (!samples) {
+      samples = Array.from({ length: REFLECTION_SAMPLES }, (_, i) => {
+        const u = (i + 0.5) / REFLECTION_SAMPLES,
+          phi = 2 * Math.PI * radicalInverse(i),
+          a = rough * rough,
+          nh = Math.sqrt((1 - u) / (1 + (a * a - 1) * u)),
+          sin = Math.sqrt(1 - nh * nh)
+        return [sin * Math.cos(phi), sin * Math.sin(phi), nh] as V3
+      })
+      this.reflectionSamples.set(rough, samples)
+    }
+    for (const [sx, sy, nh] of samples) {
       const h = orient(
-        sin * Math.cos(phi),
-        sin * Math.sin(phi),
+        sx * cosPhase - sy * sinPhase,
+        sx * sinPhase + sy * cosPhase,
         nh,
         reflected,
         rt,
