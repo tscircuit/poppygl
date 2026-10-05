@@ -46,8 +46,7 @@ export const exampleDirectory = fileURLToPath(
   new URL("tests/fixtures/realistic-examples/", root),
 )
 
-export async function prepareExample(example: Example) {
-  const sourceURL = new URL(example.source, root)
+export async function loadLocalDrawCalls(sourceURL: URL) {
   // The universal loader handles JSON/GLB and embedded textures. A file-backed
   // fetch implementation keeps these example ports entirely offline.
   const loaded = await loadGLTFWithResourcesFromURL(sourceURL.href, {
@@ -66,7 +65,12 @@ export async function prepareExample(example: Example) {
       }
     },
   })
-  const { drawCalls } = createSceneFromGLTF(loaded.gltf, loaded.resources)
+  return createSceneFromGLTF(loaded.gltf, loaded.resources).drawCalls
+}
+
+export async function prepareExample(example: Example) {
+  const sourceURL = new URL(example.source, root)
+  const drawCalls = await loadLocalDrawCalls(sourceURL)
   if (example.id === "soic8") {
     // The refreshed Model CDN asset is Z-up and uses vertex colors without
     // material definitions. Preserve its geometry, remap Z-up to Y-up, and
