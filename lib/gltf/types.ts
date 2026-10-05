@@ -6,6 +6,9 @@ export interface Material {
   baseColorTexture: BitmapLike | null
   metallicFactor?: number
   roughnessFactor?: number
+  emissiveFactor?: [number, number, number]
+  emissiveTexture?: BitmapLike | null
+  emissiveStrength?: number
   alphaMode?: "OPAQUE" | "MASK" | "BLEND"
   alphaCutoff?: number
 }

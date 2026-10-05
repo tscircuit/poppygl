@@ -303,6 +303,12 @@ function getMaterial(
     baseColorTexture: texImg,
     metallicFactor: pbr.metallicFactor ?? 1,
     roughnessFactor: pbr.roughnessFactor ?? 1,
+    emissiveFactor: material.emissiveFactor ?? [0, 0, 0],
+    emissiveTexture:
+      images[textures[material.emissiveTexture?.index]?.source] ?? null,
+    emissiveStrength:
+      material.extensions?.KHR_materials_emissive_strength?.emissiveStrength ??
+      1,
     alphaMode,
     alphaCutoff,
   }

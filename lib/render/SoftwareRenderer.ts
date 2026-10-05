@@ -561,6 +561,26 @@ export class SoftwareRenderer {
               di,
             )
           }
+          // Emission is linear radiance, independent of lights and shadows.
+          const emission = material.emissiveFactor ?? [0, 0, 0]
+          const strength = material.emissiveStrength ?? 1
+          let er = emission[0],
+            eg = emission[1],
+            eb = emission[2]
+          if (uv && material.emissiveTexture) {
+            const uvp = this.perspInterp(uv, invW, [l0, l1, l2])
+            const texel = this.sampleTextureNearest(
+              material.emissiveTexture,
+              uvp[0]!,
+              uvp[1]!,
+            )
+            er *= srgbDecodeToLinear01(texel[0])
+            eg *= srgbDecodeToLinear01(texel[1])
+            eb *= srgbDecodeToLinear01(texel[2])
+          }
+          r += er * strength
+          g += eg * strength
+          b += eb * strength
           let a = baseColor[3]
           // Keep scalar guides until the realistic-only denoising path needs
           // them, so regular rendering does not allocate a tuple per pixel.
