@@ -13,7 +13,7 @@ export async function runCLI() {
   const argv = parseCliArgs(process.argv.slice(2))
   if (argv._.length === 0) {
     console.error(
-      "Usage: poppygl model.gltf [--out out.png] [--w 960] [--h 540] [--fov 60] [--supersampling 2]",
+      "Usage: poppygl model.gltf [--out out.png] [--w 960] [--h 540] [--fov 60] [--antialias] [--supersampling 2]",
     )
     process.exit(1)
   }
@@ -44,14 +44,16 @@ export async function runCLI() {
     parseVec3(argv.light) ?? (DEFAULT_LIGHT_DIR as [number, number, number])
   const camPos = parseVec3(argv.cam)
   const lookAt = parseVec3(argv.look)
-  const cull = argv.noCull ? false : true
-  const gamma = argv.noGamma ? false : true
+  const cull = !argv.noCull
+  const gamma = !argv.noGamma
   const supersamplingArg =
     typeof argv.supersampling === "string"
       ? argv.supersampling
       : typeof argv.ss === "string"
         ? argv.ss
-        : `${DEFAULT_RENDER_OPTIONS.supersampling}`
+        : argv.antialias
+          ? "2"
+          : `${DEFAULT_RENDER_OPTIONS.supersampling}`
   const supersamplingParsed = Number.parseInt(supersamplingArg, 10)
   const supersampling =
     Number.isFinite(supersamplingParsed) && supersamplingParsed > 0
@@ -68,6 +70,7 @@ export async function runCLI() {
     lookAt,
     cull,
     gamma,
+    antialias: Boolean(argv.antialias),
     supersampling,
   })
   console.log(`Wrote ${outPath} (${width}x${height})`)

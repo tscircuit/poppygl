@@ -45,6 +45,7 @@ export interface RenderOptions {
   realistic: boolean
   width: number
   height: number
+  antialias: boolean
   supersampling: number
   fov: number
   cull: boolean
@@ -69,6 +70,7 @@ export const DEFAULT_RENDER_OPTIONS: RenderOptions = {
   realistic: false,
   width: 800,
   height: 600,
+  antialias: false,
   supersampling: 1,
   fov: 60,
   cull: true,
