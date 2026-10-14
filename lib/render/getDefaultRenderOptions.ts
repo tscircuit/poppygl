@@ -11,6 +11,17 @@ export interface DebugPoint {
   }
 }
 
+/** Guide polyline in right-handed glTF scene coordinates (normally +Y up),
+ * using the model's scene units. Each vertex is a point, not a displacement.
+ */
+export interface ExplosionLine {
+  points: readonly (readonly [number, number, number])[]
+  /** Linear RGB, 0..1; defaults to a muted blue. */
+  color?: readonly [number, number, number]
+  /** Defaults to true. Visible segments respect scene depth. */
+  dashed?: boolean
+}
+
 export type CameraUp = "y+" | "y-" | "x+" | "x-" | "z+" | "z-"
 
 export interface CameraRotation {
@@ -61,6 +72,7 @@ export interface RenderOptions {
   debugFontSize?: number | null
   debugPointColor?: readonly [number, number, number] | null
   debugLabelColor?: readonly [number, number, number] | null
+  explosionLines?: readonly ExplosionLine[] | null
 }
 
 export type RenderOptionsInput = Partial<RenderOptions>
@@ -85,6 +97,7 @@ export const DEFAULT_RENDER_OPTIONS: RenderOptions = {
   debugFontSize: null,
   debugPointColor: null,
   debugLabelColor: null,
+  explosionLines: null,
 }
 
 export function getDefaultRenderOptions(): RenderOptions {

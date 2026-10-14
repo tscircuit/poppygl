@@ -16,6 +16,10 @@ import {
 import { resolveRenderOptions } from "./resolveRenderOptions"
 import { SoftwareRenderer } from "./SoftwareRenderer"
 import { StudioLighting } from "./StudioLighting"
+import {
+  createExplosionLineDrawCall,
+  clipExplosionLineDrawCall,
+} from "./createExplosionLineDrawCall"
 
 export interface RenderResult {
   bitmap: BitmapLike
@@ -31,8 +35,11 @@ export function renderDrawCalls(
   const options = resolveRenderOptions(optionsInput)
   const renderWidth = options.width * options.supersampling
   const renderHeight = options.height * options.supersampling
+  const explosionDrawCalls = (options.explosionLines ?? []).map(
+    createExplosionLineDrawCall,
+  )
   const camera = buildCamera(
-    drawCalls,
+    [...drawCalls, ...explosionDrawCalls],
     renderWidth,
     renderHeight,
     options.fov,
@@ -231,6 +238,21 @@ export function renderDrawCalls(
       dashLength: 4 * options.supersampling,
       opacity: 0.35,
     })
+  }
+
+  for (const [index, drawCall] of explosionDrawCalls.entries()) {
+    renderer.drawLines(
+      clipExplosionLineDrawCall(drawCall, camera),
+      camera,
+      options.gamma,
+      {
+        depthCompare: "less-equal",
+        depthWrite: false,
+        depthBias: 0.0001,
+        dashed: options.explosionLines![index]!.dashed ?? true,
+        dashLength: 4 * options.supersampling,
+      },
+    )
   }
 
   if (options.debugPoints?.length) {

@@ -205,6 +205,30 @@ const png = await encodePNG(bitmap)
 
 The only contract is that `buffers` is an array of `Uint8Array` instances and `images` is an array of `BitmapLike` textures (PNG and JPEG are supported out of the box via `decodeImageFromBuffer`).
 
+## Explosion guide lines
+
+Pass `explosionLines` to any render entrypoint to draw polylines between assembled
+and displaced part positions. The caller supplies the points in the same glTF
+scene frame and units as the geometry (normally right-handed, +Y up):
+
+```ts
+const png = await renderGLTFToPNGFromGLB(glb, {
+  explosionLines: [
+    {
+      points: [[0, 10, 0], [0, 30, 0], [40, 30, 0]],
+      color: [0.08, 0.2, 0.35], // Linear RGB, 0..1; optional.
+      dashed: true, // Default; false gives a solid guide.
+    },
+  ],
+})
+```
+
+Guides respect scene depth, do not write to the depth buffer, and render after
+geometry denoising. Their points contribute to automatic camera framing. Lines
+are clipped to the camera frustum before rasterization; dash length scales with
+supersampling. Omitting the option or passing an empty list preserves the existing
+rendering behavior. Each guide needs at least two finite XYZ points.
+
 ## Additional utilities
 
 - `loadGLTFWithResourcesFromURL` returns `{ gltf, resources }` if you prefer to inspect or cache the parsed data before rendering.
