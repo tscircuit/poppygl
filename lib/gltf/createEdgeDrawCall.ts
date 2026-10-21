@@ -7,6 +7,7 @@ type Normal = readonly [number, number, number]
 interface EdgeRecord {
   indices: readonly [number, number]
   normals: Normal[]
+  adjacentVertices: number[]
 }
 
 function positionKey(positions: Float32Array, index: number): string {
@@ -38,6 +39,7 @@ function addEdge(
   positions: Float32Array,
   i0: number,
   i1: number,
+  thirdVertex: number,
   normal: Normal | null,
 ) {
   const key0 = positionKey(positions, i0)
@@ -48,8 +50,13 @@ function addEdge(
   const existing = edges.get(key)
   if (existing) {
     if (normal) existing.normals.push(normal)
+    existing.adjacentVertices.push(thirdVertex)
   } else {
-    edges.set(key, { indices, normals: normal ? [normal] : [] })
+    edges.set(key, {
+      indices,
+      normals: normal ? [normal] : [],
+      adjacentVertices: [thirdVertex],
+    })
   }
 }
 
@@ -88,16 +95,18 @@ export function createEdgeDrawCall(
     const i1 = triangleIndices[i + 1]!
     const i2 = triangleIndices[i + 2]!
     const normal = triangleNormal(mesh.positions, i0, i1, i2)
-    addEdge(edges, mesh.positions, i0, i1, normal)
-    addEdge(edges, mesh.positions, i1, i2, normal)
-    addEdge(edges, mesh.positions, i2, i0, normal)
+    addEdge(edges, mesh.positions, i0, i1, i2, normal)
+    addEdge(edges, mesh.positions, i1, i2, i0, normal)
+    addEdge(edges, mesh.positions, i2, i0, i1, normal)
   }
 
   const minimumDot = Math.cos((creaseAngleDegrees * Math.PI) / 180)
   const edgeIndices: number[] = []
+  const edgeAdjacentVertices: number[][] = []
   for (const edge of edges.values()) {
     if (!hasCrease(edge.normals, minimumDot)) continue
     edgeIndices.push(edge.indices[0], edge.indices[1])
+    edgeAdjacentVertices.push(edge.adjacentVertices)
   }
   if (edgeIndices.length === 0) return null
 
@@ -113,5 +122,6 @@ export function createEdgeDrawCall(
       alphaMode: "BLEND",
     },
     mode: 1,
+    edgeAdjacentVertices,
   }
 }
