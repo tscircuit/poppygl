@@ -16,6 +16,10 @@ import { mulColor } from "../utils/mulColor"
 import { srgbEncodeLinear01 } from "../utils/srgbEncodeLinear01"
 import { srgbDecodeToLinear01 } from "../utils/srgbDecodeToLinear01"
 import { clamp } from "../utils/clamp"
+import {
+  type TextureWrap,
+  wrapTextureCoordinate,
+} from "../utils/wrapTextureCoordinate"
 import { clipMeshToNearPlane } from "./clipMeshToNearPlane"
 import type { StudioLighting } from "./StudioLighting"
 import { GeometryDenoiser } from "./GeometryDenoiser"
@@ -273,8 +277,11 @@ export class SoftwareRenderer {
     img: BitmapLike | null,
     u: number,
     v: number,
+    wrap?: TextureWrap,
   ): MutableRGBA {
     if (!img) return [1, 1, 1, 1]
+    u = wrapTextureCoordinate(u, wrap?.wrapS)
+    v = wrapTextureCoordinate(v, wrap?.wrapT)
     const x = clamp(Math.floor(u * (img.width - 1)), 0, img.width - 1)
     const y = clamp(Math.floor(v * (img.height - 1)), 0, img.height - 1)
     const idx = (y * img.width + x) * 4
@@ -525,6 +532,7 @@ export class SoftwareRenderer {
               material.baseColorTexture,
               uvp[0]!,
               uvp[1]!,
+              material.baseColorTextureWrap,
             )
             // glTF base-color textures store sRGB RGB and linear alpha.
             // Decode before multiplying by the linear material factor and lighting.
@@ -599,6 +607,7 @@ export class SoftwareRenderer {
               material.emissiveTexture,
               uvp[0]!,
               uvp[1]!,
+              material.emissiveTextureWrap,
             )
             er *= srgbDecodeToLinear01(texel[0])
             eg *= srgbDecodeToLinear01(texel[1])
