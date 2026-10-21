@@ -16,6 +16,11 @@ import {
 import { resolveRenderOptions } from "./resolveRenderOptions"
 import { SoftwareRenderer } from "./SoftwareRenderer"
 import { StudioLighting } from "./StudioLighting"
+import {
+  createExplosionLineDrawCall,
+  clipExplosionLineDrawCall,
+} from "./createExplosionLineDrawCall"
+import { createExplosionArrowDrawCall } from "./createExplosionArrowDrawCall"
 
 export interface RenderResult {
   bitmap: BitmapLike
@@ -31,8 +36,11 @@ export function renderDrawCalls(
   const options = resolveRenderOptions(optionsInput)
   const renderWidth = options.width * options.supersampling
   const renderHeight = options.height * options.supersampling
+  const explosionDrawCalls = (options.explosionLines ?? []).map(
+    createExplosionLineDrawCall,
+  )
   const camera = buildCamera(
-    drawCalls,
+    [...drawCalls, ...explosionDrawCalls],
     renderWidth,
     renderHeight,
     options.fov,
@@ -237,6 +245,44 @@ export function renderDrawCalls(
       opacity: options.hiddenEdgeOpacity,
       width: options.edgeWidth * options.supersampling,
     })
+  }
+
+  for (const [index, drawCall] of explosionDrawCalls.entries()) {
+    renderer.drawLines(
+      clipExplosionLineDrawCall(drawCall, camera),
+      camera,
+      options.gamma,
+      {
+        depthCompare: "less-equal",
+        depthWrite: false,
+        depthBias: 0.0001,
+        dashed: options.explosionLines![index]!.dashed ?? true,
+        dashLength: 4 * options.supersampling,
+        width: options.lineWidth * options.supersampling,
+      },
+    )
+    if (options.explosionLines![index]!.arrow) {
+      const arrow = createExplosionArrowDrawCall(
+        drawCall,
+        camera,
+        renderWidth,
+        renderHeight,
+        options.supersampling,
+      )
+      if (arrow) {
+        renderer.drawLines(
+          clipExplosionLineDrawCall(arrow, camera),
+          camera,
+          options.gamma,
+          {
+            depthCompare: "less-equal",
+            depthWrite: false,
+            depthBias: 0.0001,
+            width: options.lineWidth * options.supersampling,
+          },
+        )
+      }
+    }
   }
 
   if (options.debugPoints?.length) {

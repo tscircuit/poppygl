@@ -11,6 +11,22 @@ export interface DebugPoint {
   }
 }
 
+/** Guide polyline in right-handed glTF scene coordinates (normally +Y up),
+ * using the model's scene units. Each vertex is a point, not a displacement.
+ */
+export interface ExplosionLine {
+  points: readonly (readonly [number, number, number])[]
+  /** Linear RGB, 0..1; defaults to a muted blue. */
+  color?: readonly [number, number, number]
+  /** Defaults to true. Visible segments respect scene depth. */
+  dashed?: boolean
+  /** Add a solid arrowhead at the last point, following the final segment.
+   * Defaults to false. The arrowhead is 10 output pixels long (or shorter for
+   * short segments), independent of camera distance and supersampling.
+   */
+  arrow?: boolean
+}
+
 export type CameraUp = "y+" | "y-" | "x+" | "x-" | "z+" | "z-"
 
 export interface CameraRotation {
@@ -61,13 +77,14 @@ export interface RenderOptions {
   debugFontSize?: number | null
   debugPointColor?: readonly [number, number, number] | null
   debugLabelColor?: readonly [number, number, number] | null
+  explosionLines?: readonly ExplosionLine[] | null
   /** Draw visible boundary and crease edges on every triangle mesh. */
   showEdges: boolean
   /** Override model showHiddenEdges flags; null preserves each model's flag. */
   showHiddenEdges: boolean | null
   /** Width of visible and hidden mesh edges in output pixels. */
   edgeWidth: number
-  /** Width of glTF LINES and finite grid lines in output pixels. */
+  /** Width of glTF LINES, finite grid lines, and explosion guides in output pixels. */
   lineWidth: number
   /** Opacity of dashed, occluded mesh edges, from 0 to 1. */
   hiddenEdgeOpacity: number
@@ -95,6 +112,7 @@ export const DEFAULT_RENDER_OPTIONS: RenderOptions = {
   debugFontSize: null,
   debugPointColor: null,
   debugLabelColor: null,
+  explosionLines: null,
   showEdges: false,
   showHiddenEdges: null,
   edgeWidth: 1,
