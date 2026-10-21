@@ -38,9 +38,32 @@ export function resolveRenderOptions(
       ? Math.max(1, Math.floor(options.supersampling))
       : DEFAULT_RENDER_OPTIONS.supersampling
 
+  const engineering = options.renderStyle === "engineering"
+
   return {
     ...DEFAULT_RENDER_OPTIONS,
     ...options,
+    renderStyle: engineering ? "engineering" : "shaded",
+    projection:
+      options.projection === "orthographic" ||
+      (engineering && options.projection !== "perspective")
+        ? "orthographic"
+        : "perspective",
+    orthographicHeight:
+      typeof options.orthographicHeight === "number" &&
+      Number.isFinite(options.orthographicHeight) &&
+      options.orthographicHeight > 0
+        ? options.orthographicHeight
+        : null,
+    ...(engineering
+      ? {
+          realistic: false,
+          ambient: 1,
+          gamma: false,
+          cull: false,
+          backgroundColor: options.backgroundColor ?? "#ffffff",
+        }
+      : {}),
     supersampling,
     lightDir:
       options.lightDir != null
@@ -56,11 +79,13 @@ export function resolveRenderOptions(
         : DEFAULT_RENDER_OPTIONS.lookAt,
     up: resolveCameraUp(options.up),
     cameraRotation: resolveCameraRotation(options.cameraRotation),
-    showEdges: options.showEdges === true,
+    showEdges: options.showEdges ?? engineering,
     showHiddenEdges:
       typeof options.showHiddenEdges === "boolean"
         ? options.showHiddenEdges
-        : null,
+        : engineering
+          ? false
+          : null,
     edgeWidth: resolveWidth(options.edgeWidth),
     lineWidth: resolveWidth(options.lineWidth),
     hiddenEdgeOpacity:

@@ -1,3 +1,4 @@
+import { createEngineeringSection } from "./createEngineeringSection"
 import { buildCamera, type Camera } from "../camera/buildCamera"
 import { computeWorldAABB } from "../gltf/computeWorldAABB"
 import { createGrid } from "../gltf/createGrid"
@@ -34,6 +35,11 @@ export function renderDrawCalls(
   imageFactory: ImageFactory = createUint8Bitmap,
 ): RenderResult {
   const options = resolveRenderOptions(optionsInput)
+  if (options.section) {
+    if (options.renderStyle !== "engineering")
+      throw new Error("section requires renderStyle: engineering")
+    drawCalls = createEngineeringSection(drawCalls, options.section).drawCalls
+  }
   const renderWidth = options.width * options.supersampling
   const renderHeight = options.height * options.supersampling
   const explosionDrawCalls = (options.explosionLines ?? []).map(
@@ -48,6 +54,8 @@ export function renderDrawCalls(
     options.lookAt ?? null,
     options.up,
     options.cameraRotation ?? null,
+    options.projection,
+    options.orthographicHeight,
   )
 
   const renderer = new SoftwareRenderer(
@@ -84,7 +92,25 @@ export function renderDrawCalls(
     renderer.clear([0, 0, 0, 0])
   }
 
-  const allDrawCalls = [...drawCalls]
+  const allDrawCalls =
+    options.renderStyle === "engineering"
+      ? drawCalls.map(
+          (dc): DrawCall =>
+            dc.mode === 1 || options.section
+              ? dc
+              : {
+                  ...dc,
+                  normals: null,
+                  colors: null,
+                  uvs: null,
+                  material: {
+                    baseColorFactor: [1, 1, 1, 1],
+                    baseColorTexture: null,
+                    alphaMode: "OPAQUE",
+                  },
+                },
+        )
+      : [...drawCalls]
   let infiniteGridOptions: GridOptions | null = null
 
   if (options.grid) {
@@ -226,7 +252,13 @@ export function renderDrawCalls(
   for (const dc of drawCalls) {
     const showHiddenEdges = options.showHiddenEdges ?? dc.showHiddenEdges
     if (!options.showEdges && !showHiddenEdges) continue
-    const edgeDrawCall = createEdgeDrawCall(dc)
+    const edgeDrawCall = createEdgeDrawCall(
+      dc,
+      30,
+      options.renderStyle === "engineering"
+        ? { view: camera.view, projection: options.projection }
+        : undefined,
+    )
     if (!edgeDrawCall) continue
 
     renderer.drawLines(edgeDrawCall, camera, options.gamma, {

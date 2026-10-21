@@ -5,6 +5,7 @@
     "": {
       "name": "poppygl",
       "dependencies": {
+        "earcut": "^3.2.4",
         "fast-png": "^8.0.0",
         "gl-matrix": "^3.4.4",
         "pureimage": "^0.4.18",

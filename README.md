@@ -295,3 +295,57 @@ controls both the shaft and arrowhead stroke width. Omit `arrow` or set it to
 - `encodePNG` packs any `BitmapLike` into a `Uint8Array` PNG that can be written to disk or served over the network.
 
 Happy rendering!
+
+### Engineering drawings
+
+```ts
+const png = await renderGLTFToPNGFromURL("https://example.com/housing.glb", {
+  renderStyle: "engineering",
+  width: 1200,
+  height: 900,
+  supersampling: 2,
+  camPos: [80, 60, 100],
+  lookAt: [0, 0, 0],
+  showHiddenEdges: true,
+  edgeWidth: 1.5,
+})
+```
+
+`renderStyle: "engineering"` uses white opaque surfaces, black boundary/crease
+edges and view-dependent silhouettes, and orthographic projection by default.
+Hidden edges are omitted by default, including model-level hidden-edge flags;
+`showHiddenEdges: true` adds dashed occluded strokes with `hiddenEdgeOpacity`.
+Materials, textures, vertex colors, transparency and lighting are ignored in this
+style. Input meshes are not modified. Existing shaded rendering defaults stay
+unchanged. The same options work with `renderDrawCalls`, GLB bytes, and glTF/GLB URLs.
+
+`projection: "orthographic"` also works independently of engineering style.
+`orthographicHeight` sets the vertical field of view in model scene units; omit it
+to fit the transformed scene bounds with a margin. Orthographic projection preserves
+parallel edges and apparent size with distance. `camPos`, `lookAt`, `up` and
+`cameraRotation` keep their existing meanings. For an axis-aligned view choose a
+camera on that axis and an `up` axis that is not parallel to it.
+
+Section views are available in engineering style:
+
+```ts
+const png = await renderGLTFToPNGFromGLB(glbBytes, {
+  renderStyle: "engineering",
+  up: "y+",
+  section: { axis: "x", offset: 5, keepSide: "less", hatchSpacing: 1 },
+})
+```
+
+The plane is specified in **world glTF coordinates**, normally +Y up, using model
+scene units. `less` retains axis coordinates <= offset; `greater` retains >= offset.
+Closed cut surfaces receive diagonal hatching in the section plane (spacing defaults
+to one scene unit). Nested loops preserve cavities. Open cut chains remain uncapped; non-manifold inputs are unsupported. `createEngineeringSection` exposes the prepared draw calls and
+`openChains` count for callers that need to report incomplete caps. Primitives are
+capped independently; surfaces split across separate primitives cannot form a cap.
+Sections outside or tangent to a mesh do not create artificial caps. Section cuts
+currently require engineering style; shaded sections are not supported.
+
+These are raster engineering illustrations, not CAD/B-rep exports: silhouettes
+follow the input tessellation, crease extraction uses a 30-degree threshold, and
+hidden lines are resolved against raster depth. Dimension annotations, paper sheet
+layout and TSX/core integration are separate downstream work.

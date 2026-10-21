@@ -1,3 +1,4 @@
+import type { EngineeringSection } from "./createEngineeringSection"
 import type { GridOptions } from "../gltf/types"
 
 export const DEFAULT_LIGHT_DIR = [-0.4, -0.9, -0.2] as const
@@ -57,6 +58,14 @@ export function hexToRgb(hex: string): [number, number, number] | null {
 }
 
 export interface RenderOptions {
+  /** White opaque surfaces with black boundary, crease and silhouette edges. */
+  renderStyle: "shaded" | "engineering"
+  /** Section cuts are supported in engineering style only. */
+  section: EngineeringSection | null
+  /** Engineering defaults to orthographic; existing renders stay perspective. */
+  projection: "perspective" | "orthographic"
+  /** Vertical span in scene units. Null automatically fits the world bounds. */
+  orthographicHeight: number | null
   /** Opt into metallic/roughness studio lighting and geometry-based soft shadows. */
   realistic: boolean
   width: number
@@ -93,6 +102,10 @@ export interface RenderOptions {
 export type RenderOptionsInput = Partial<RenderOptions>
 
 export const DEFAULT_RENDER_OPTIONS: RenderOptions = {
+  renderStyle: "shaded",
+  section: null,
+  projection: "perspective",
+  orthographicHeight: null,
   realistic: false,
   width: 800,
   height: 600,
