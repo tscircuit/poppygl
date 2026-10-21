@@ -23,6 +23,8 @@ export interface DrawCall {
   colors?: Float32Array | null
   mode?: number // glTF primitive mode: 4 = triangles, 1 = lines
   showHiddenEdges?: boolean
+  /** Source triangle third vertices for each extracted edge segment. */
+  edgeAdjacentVertices?: number[][]
 }
 
 export interface GridOptions {

@@ -56,5 +56,23 @@ export function resolveRenderOptions(
         : DEFAULT_RENDER_OPTIONS.lookAt,
     up: resolveCameraUp(options.up),
     cameraRotation: resolveCameraRotation(options.cameraRotation),
+    showEdges: options.showEdges === true,
+    showHiddenEdges:
+      typeof options.showHiddenEdges === "boolean"
+        ? options.showHiddenEdges
+        : null,
+    edgeWidth: resolveWidth(options.edgeWidth),
+    lineWidth: resolveWidth(options.lineWidth),
+    hiddenEdgeOpacity:
+      typeof options.hiddenEdgeOpacity === "number" &&
+      Number.isFinite(options.hiddenEdgeOpacity)
+        ? Math.max(0, Math.min(1, options.hiddenEdgeOpacity))
+        : DEFAULT_RENDER_OPTIONS.hiddenEdgeOpacity,
   }
+}
+
+function resolveWidth(width: number | undefined): number {
+  return typeof width === "number" && Number.isFinite(width) && width > 0
+    ? width
+    : 1
 }

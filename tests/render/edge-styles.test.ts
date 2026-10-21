@@ -2,8 +2,10 @@ import { expect, test } from "bun:test"
 import { mat4 } from "gl-matrix"
 import {
   createUint8Bitmap,
+  createEdgeDrawCall,
   encodePNG,
   renderDrawCalls,
+  SoftwareRenderer,
   type BitmapLike,
   type DrawCall,
   type RenderOptionsInput,
@@ -140,4 +142,78 @@ test("edgeWidth is measured in output pixels under supersampling", () => {
     addedDarkness(sampledBase, sampledOutline) / addedDarkness(base, outlined)
   expect(ratio).toBeGreaterThan(0.8)
   expect(ratio).toBeLessThan(1.2)
+})
+
+test("wide visible edges follow their sloping source surface while a nearer object still hides them", async () => {
+  const camera = { view: mat4.create(), proj: mat4.create() }
+  const surface = cube()
+  surface.positions = new Float32Array([
+    -0.8, -0.6, -0.48, 0.8, -0.6, -0.48, 0.8, 0.6, 0.48, -0.8, 0.6, 0.48,
+  ])
+  surface.indices = new Uint32Array([0, 1, 2, 0, 2, 3])
+  const edge = createEdgeDrawCall(surface)!
+  const occluder = cube()
+  // A parallel red strip only 0.005 depth units in front of the source.
+  // A constant bias large enough to repair the wide edge would reveal it.
+  occluder.positions = new Float32Array([
+    -0.1, 0.45, 0.35, 0.1, 0.45, 0.35, 0.1, 0.7, 0.55, -0.1, 0.7, 0.55,
+  ])
+  occluder.indices = new Uint32Array([0, 1, 2, 0, 2, 3])
+  occluder.material = { baseColorFactor: [1, 0, 0, 1], baseColorTexture: null }
+
+  const renderSurface = (withOccluder: boolean, showHidden: boolean) => {
+    const image = new SoftwareRenderer(129, 129)
+    image.clear([255, 255, 255, 255])
+    for (const mesh of withOccluder ? [surface, occluder] : [surface]) {
+      image.drawMesh(
+        mesh,
+        camera,
+        { dir: [0, 0, -1], ambient: 1 },
+        mesh.material,
+        false,
+        false,
+      )
+    }
+    image.drawLines(edge, camera, false, {
+      width: 6,
+      depthWrite: false,
+      depthCompare: "less-equal",
+      depthBias: 0.0001,
+    })
+    if (showHidden) {
+      image.drawLines(edge, camera, false, {
+        width: 6,
+        depthWrite: false,
+        depthCompare: "greater",
+        depthBias: 0.0001,
+        opacity: 0.5,
+      })
+    }
+    return image.bitmap
+  }
+  const visible = renderSurface(false, false)
+  const occluded = renderSurface(true, false)
+  const hidden = renderSurface(true, true)
+  const pixel = (image: BitmapLike, x: number, y: number) =>
+    Array.from(image.data.slice((y * 129 + x) * 4, (y * 129 + x) * 4 + 4))
+  // These samples are inside the face, where using the centerline's depth
+  // would wrongly classify the full-width, visible top edge as hidden.
+  expect(pixel(visible, 44, 27)).toEqual([0, 0, 0, 255])
+  expect(pixel(occluded, 44, 27)).toEqual([0, 0, 0, 255])
+  expect(pixel(occluded, 64, 27)).toEqual([255, 0, 0, 255])
+  expect(pixel(hidden, 64, 27)).toEqual([128, 0, 0, 255])
+
+  const comparison = createUint8Bitmap(129 * 3, 129)
+  for (const [column, image] of [visible, occluded, hidden].entries()) {
+    for (let y = 0; y < 129; y++) {
+      comparison.data.set(
+        image.data.subarray(y * 129 * 4, (y + 1) * 129 * 4),
+        (y * comparison.width + column * 129) * 4,
+      )
+    }
+  }
+  await expect(encodePNG(comparison)).toMatchPngSnapshot(
+    import.meta.path,
+    "edge-surface-depth",
+  )
 })
