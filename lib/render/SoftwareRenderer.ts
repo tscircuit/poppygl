@@ -588,8 +588,12 @@ export class SoftwareRenderer {
             const uvp = this.perspInterp(uv, invW, [l0, l1, l2])
             const texel = this.sampleTextureNearest(
               material.baseColorTexture,
-              uvp[0]!,
-              uvp[1]!,
+              material.baseColorTextureWrap === "repeat"
+                ? uvp[0]! - Math.floor(uvp[0]!)
+                : uvp[0]!,
+              material.baseColorTextureWrap === "repeat"
+                ? uvp[1]! - Math.floor(uvp[1]!)
+                : uvp[1]!,
             )
             // glTF base-color textures store sRGB RGB and linear alpha.
             // Decode before multiplying by the linear material factor and lighting.

@@ -77,3 +77,6 @@ export function renderSceneFromGLTF(
 ) {
   return renderDrawCalls(scene.drawCalls, options, imageFactory)
 }
+
+export { createOutlineSection } from "./render/createOutlineSection"
+export type { OutlineSection } from "./render/createOutlineSection"

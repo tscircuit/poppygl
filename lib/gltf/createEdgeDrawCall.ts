@@ -1,3 +1,4 @@
+import { mat4, vec3 } from "gl-matrix"
 import type { DrawCall } from "./types"
 
 const DEFAULT_CREASE_ANGLE_DEGREES = 30
@@ -8,6 +9,7 @@ interface EdgeRecord {
   indices: readonly [number, number]
   normals: Normal[]
   adjacentVertices: number[]
+  facings: number[]
 }
 
 function positionKey(positions: Float32Array, index: number): string {
@@ -41,6 +43,7 @@ function addEdge(
   i1: number,
   thirdVertex: number,
   normal: Normal | null,
+  facing: number,
 ) {
   const key0 = positionKey(positions, i0)
   const key1 = positionKey(positions, i1)
@@ -51,11 +54,13 @@ function addEdge(
   if (existing) {
     if (normal) existing.normals.push(normal)
     existing.adjacentVertices.push(thirdVertex)
+    existing.facings.push(facing)
   } else {
     edges.set(key, {
       indices,
       normals: normal ? [normal] : [],
       adjacentVertices: [thirdVertex],
+      facings: [facing],
     })
   }
 }
@@ -81,6 +86,8 @@ function hasCrease(normals: Normal[], minimumDot: number): boolean {
 export function createEdgeDrawCall(
   mesh: DrawCall,
   creaseAngleDegrees = DEFAULT_CREASE_ANGLE_DEGREES,
+  /** Include view-dependent silhouettes, with crease angles measured after transforms. */
+  camera?: { view: mat4; projection: "perspective" | "orthographic" },
 ): DrawCall | null {
   if (mesh.mode != null && mesh.mode !== 4) return null
 
@@ -89,22 +96,48 @@ export function createEdgeDrawCall(
     mesh.indices ?? Uint32Array.from({ length: vertexCount }, (_, i) => i)
   if (triangleIndices.length < 3) return null
 
+  let normalPositions = mesh.positions
+  if (camera) {
+    const modelView = mat4.multiply(mat4.create(), camera.view, mesh.model)
+    normalPositions = new Float32Array(mesh.positions.length)
+    for (let i = 0; i < vertexCount; i++) {
+      const point = vec3.transformMat4(
+        vec3.create(),
+        mesh.positions.subarray(i * 3, i * 3 + 3),
+        modelView,
+      )
+      normalPositions.set(point, i * 3)
+    }
+  }
   const edges = new Map<string, EdgeRecord>()
   for (let i = 0; i + 2 < triangleIndices.length; i += 3) {
     const i0 = triangleIndices[i]!
     const i1 = triangleIndices[i + 1]!
     const i2 = triangleIndices[i + 2]!
-    const normal = triangleNormal(mesh.positions, i0, i1, i2)
-    addEdge(edges, mesh.positions, i0, i1, i2, normal)
-    addEdge(edges, mesh.positions, i1, i2, i0, normal)
-    addEdge(edges, mesh.positions, i2, i0, i1, normal)
+    const normal = triangleNormal(normalPositions, i0, i1, i2)
+    const facing = !normal
+      ? 0
+      : camera?.projection === "perspective"
+        ? -(
+            normal[0] * normalPositions[i0 * 3]! +
+            normal[1] * normalPositions[i0 * 3 + 1]! +
+            normal[2] * normalPositions[i0 * 3 + 2]!
+          )
+        : normal[2]
+    addEdge(edges, mesh.positions, i0, i1, i2, normal, facing)
+    addEdge(edges, mesh.positions, i1, i2, i0, normal, facing)
+    addEdge(edges, mesh.positions, i2, i0, i1, normal, facing)
   }
 
   const minimumDot = Math.cos((creaseAngleDegrees * Math.PI) / 180)
   const edgeIndices: number[] = []
   const edgeAdjacentVertices: number[][] = []
   for (const edge of edges.values()) {
-    if (!hasCrease(edge.normals, minimumDot)) continue
+    const silhouette =
+      camera &&
+      edge.facings.some((n) => n > 1e-7) &&
+      edge.facings.some((n) => n <= 1e-7)
+    if (!hasCrease(edge.normals, minimumDot) && !silhouette) continue
     edgeIndices.push(edge.indices[0], edge.indices[1])
     edgeAdjacentVertices.push(edge.adjacentVertices)
   }

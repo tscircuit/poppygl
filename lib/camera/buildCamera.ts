@@ -176,6 +176,8 @@ export function buildCamera(
   lookAt: readonly [number, number, number] | null | undefined,
   up: CameraUp | null | undefined = "y+",
   cameraRotation: CameraRotation | null | undefined = null,
+  projection: "perspective" | "orthographic" = "perspective",
+  orthographicHeight: number | null = null,
 ): Camera {
   const aspect = width / height
   const worldUp = getWorldUpVector(up)
@@ -211,10 +213,21 @@ export function buildCamera(
     const near = Math.max(0.01, nearest * 0.5)
     const far = Math.max(1000, farthest * 1.1)
     const proj = mat4.create()
-    mat4.perspective(proj, toRad(fovDeg), aspect, near, far)
+    const view = buildViewFromRotation(eye, worldUp, cameraRotation)
+    setProjection(
+      proj,
+      view,
+      aabb,
+      projection,
+      orthographicHeight,
+      fovDeg,
+      aspect,
+      near,
+      far,
+    )
 
     return {
-      view: buildViewFromRotation(eye, worldUp, cameraRotation),
+      view,
       proj,
     }
   }
@@ -234,8 +247,60 @@ export function buildCamera(
   const near = Math.max(0.01, nearest * 0.5)
   const far = Math.max(1000, farthest * 1.1)
   const proj = mat4.create()
-  mat4.perspective(proj, toRad(fovDeg), aspect, near, far)
   const view = buildViewFromLookAt(eye, target, worldUp)
+  setProjection(
+    proj,
+    view,
+    aabb,
+    projection,
+    orthographicHeight,
+    fovDeg,
+    aspect,
+    near,
+    far,
+  )
 
   return { view, proj }
+}
+
+/** Fit in camera space, including rotated/transformed bounds and narrow images. */
+function setProjection(
+  proj: mat4,
+  view: mat4,
+  aabb: ReturnType<typeof computeWorldAABB>,
+  projection: "perspective" | "orthographic",
+  height: number | null,
+  fov: number,
+  aspect: number,
+  near: number,
+  far: number,
+) {
+  if (projection === "perspective") {
+    mat4.perspective(proj, toRad(fov), aspect, near, far)
+    return
+  }
+  let halfHeight = 0
+  for (const x of [aabb.min[0]!, aabb.max[0]!])
+    for (const y of [aabb.min[1]!, aabb.max[1]!])
+      for (const z of [aabb.min[2]!, aabb.max[2]!]) {
+        const p = vec3.transformMat4(vec3.create(), [x, y, z], view)
+        halfHeight = Math.max(
+          halfHeight,
+          Math.abs(p[1]!),
+          Math.abs(p[0]!) / aspect,
+        )
+      }
+  halfHeight =
+    height != null && Number.isFinite(height) && height > 0
+      ? height / 2
+      : Math.max(halfHeight * 1.1, 0.001)
+  mat4.ortho(
+    proj,
+    -halfHeight * aspect,
+    halfHeight * aspect,
+    -halfHeight,
+    halfHeight,
+    near,
+    far,
+  )
 }

@@ -4,6 +4,8 @@ import type { BitmapLike } from "../image/createUint8Bitmap"
 export interface Material {
   baseColorFactor: [number, number, number, number]
   baseColorTexture: BitmapLike | null
+  /** Repeat rather than clamp the base-color texture (used by section hatching). */
+  baseColorTextureWrap?: "repeat" | "clamp"
   metallicFactor?: number
   roughnessFactor?: number
   emissiveFactor?: [number, number, number]
@@ -14,6 +16,8 @@ export interface Material {
 }
 
 export interface DrawCall {
+  /** Generated section cap; preserve its hatch material in outline style. */
+  outlineSectionCap?: boolean
   positions: Float32Array
   normals: Float32Array | null
   uvs: Float32Array | null
