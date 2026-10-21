@@ -136,7 +136,7 @@ const png = await renderGLTFToPNGFromGLB(glb, {
 - `showEdges`: draw visible boundary and crease edges on all triangle meshes (default `false`).
 - `showHiddenEdges`: draw visible edges plus faint dashed occluded edges on all meshes. Omit it or use `null` to preserve each model's flag; `false` disables those flags.
 - `edgeWidth`: width of both visible and hidden mesh edges in output pixels (default `1`).
-- `lineWidth`: width of glTF `LINES` and finite grid lines in output pixels (default `1`).
+- `lineWidth`: width of glTF `LINES`, finite grid lines, and explosion guides in output pixels (default `1`).
 - `hiddenEdgeOpacity`: opacity of dashed occluded mesh edges, from `0` to `1` (default `0.35`).
 - `fetchImpl`: optional override for resource loading (must match the `fetch` signature).
 
@@ -167,8 +167,9 @@ finite fractional widths are supported; invalid widths fall back to one pixel.
 Wider strokes use antialiased screen-space coverage with round caps in the
 software renderer. They are clipped before the perspective divide and remain
 depth tested across their full width. No GPU or shader runtime is required.
-`lineWidth` also applies to ordinary glTF line primitives and finite grid lines;
-the procedural infinite grid keeps its existing independent styling.
+`lineWidth` also applies to ordinary glTF line primitives, finite grid lines,
+and explosion guides, including arrowhead strokes. The procedural infinite grid
+keeps its existing independent styling.
 
 ### Hidden edges for selected sub-models
 
@@ -248,32 +249,42 @@ This lamp is adapted from [core's reference-surface lamp](https://github.com/tsc
 Its base, hollow blue stem, and bulb stay in place while the hollow shade,
 mounting collar, and three spokes move together by **+60 mm on scene Y**. The
 shade mount moves from Y=92 to Y=152. Two dashed guides join corresponding points
-on its lower rim, from Y=68 to Y=128:
+on its lower rim, from Y=68 to Y=128. Arrowheads at the displaced endpoints show
+the upward movement:
 
-![Assembled lamp and shade lifted 60 mm with dashed explosion guides](tests/render/__snapshots__/explosion-lamp.snap.png)
+![Assembled lamp and shade lifted 60 mm with dashed upward arrow guides](tests/render/__snapshots__/explosion-lamp.snap.png)
 
 ```ts
 // explodedLampGlb already contains the shade translated +60 mm on scene Y.
+const rimPoints = [[-36 / Math.SQRT2, 36 / Math.SQRT2], [36, 0]] as const
 const png = await renderGLTFToPNGFromGLB(explodedLampGlb, {
-  explosionLines: [-1, 1].map((side) => ({
-    points: [[side * 36, 68, 0], [side * 36, 128, 0]],
+  explosionLines: rimPoints.map(([x, z]) => ({
+    points: [[x, 68, z], [x, 128, z]],
     color: [0.015, 0.04, 0.08], // Linear RGB, 0..1; optional.
     dashed: true, // Default; false gives a solid guide.
+    arrow: true, // Optional; false by default.
   })),
 })
 ```
 
 The deterministic [lamp fixture](tests/fixtures/reference-lamp.ts) and
 [visual test](tests/render/explosion-lamp.test.ts) generate the comparison without
-network assets. Open the `explosion-lamp` Cosmos example to toggle the shade and
-guides interactively. The separate synthetic explosion-lines snapshot exercises
-elbows, geometry occlusion, and camera clipping.
+network assets. Open the `explosion-lamp` Cosmos example to toggle shade movement,
+guides, and arrows interactively. The separate synthetic explosion-lines snapshot
+exercises elbows, geometry occlusion, and camera clipping.
 
 Guides respect scene depth, do not write to the depth buffer, and render after
 geometry denoising. Their points contribute to automatic camera framing. Lines
 are clipped to the camera frustum before rasterization; dash length scales with
 supersampling. Omitting the option or passing an empty list preserves the existing
 rendering behavior. Each guide needs at least two finite XYZ points.
+
+Set `arrow: true` to draw a solid open arrowhead at the final authored point,
+following the final nonzero-length segment's direction. Arrowheads are at most
+10 output pixels long, capped for short segments, and scale with supersampling.
+They respect scene depth and remain solid when the shaft is dashed. `lineWidth`
+controls both the shaft and arrowhead stroke width. Omit `arrow` or set it to
+`false` for a guide without an arrow.
 
 ## Additional utilities
 

@@ -20,6 +20,7 @@ import {
   createExplosionLineDrawCall,
   clipExplosionLineDrawCall,
 } from "./createExplosionLineDrawCall"
+import { createExplosionArrowDrawCall } from "./createExplosionArrowDrawCall"
 
 export interface RenderResult {
   bitmap: BitmapLike
@@ -257,8 +258,31 @@ export function renderDrawCalls(
         depthBias: 0.0001,
         dashed: options.explosionLines![index]!.dashed ?? true,
         dashLength: 4 * options.supersampling,
+        width: options.lineWidth * options.supersampling,
       },
     )
+    if (options.explosionLines![index]!.arrow) {
+      const arrow = createExplosionArrowDrawCall(
+        drawCall,
+        camera,
+        renderWidth,
+        renderHeight,
+        options.supersampling,
+      )
+      if (arrow) {
+        renderer.drawLines(
+          clipExplosionLineDrawCall(arrow, camera),
+          camera,
+          options.gamma,
+          {
+            depthCompare: "less-equal",
+            depthWrite: false,
+            depthBias: 0.0001,
+            width: options.lineWidth * options.supersampling,
+          },
+        )
+      }
+    }
   }
 
   if (options.debugPoints?.length) {

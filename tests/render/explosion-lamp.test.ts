@@ -7,17 +7,22 @@ import {
 } from "../fixtures/reference-lamp"
 import "../fixtures/preload"
 
-/** Corresponding points on the shade's lower rim, +60 mm in scene Y. */
-const explosionLines: ExplosionLine[] = [-1, 1].map((side) => ({
+/** Front rim points keep both arrowheads visible; each lifts +60 mm in scene Y. */
+const rimPoints = [
+  [-36 / Math.SQRT2, 36 / Math.SQRT2],
+  [36, 0],
+] as const
+const explosionLines: ExplosionLine[] = rimPoints.map(([x, z]) => ({
   points: [
-    [side * 36, 68, 0],
-    [side * 36, 128, 0],
+    [x, 68, z],
+    [x, 128, z],
   ],
   color: [0.015, 0.04, 0.08],
   dashed: true,
+  arrow: true,
 }))
 
-test("lamp shade lifts 60 mm with dashed guides between corresponding rim points", async () => {
+test("lamp shade lifts 60 mm with upward arrow guides between corresponding rim points", async () => {
   const assembledParts = createLampDrawCalls()
   const explodedParts = createLampDrawCalls(60)
   for (let i = 0; i < 3; i++) {
@@ -32,16 +37,21 @@ test("lamp shade lifts 60 mm with dashed guides between corresponding rim points
     explodedParts,
     lampRenderOptions,
   )
+  const explodedWithoutArrows = renderDrawCalls(explodedParts, {
+    ...lampRenderOptions,
+    explosionLines: explosionLines.map((line) => ({ ...line, arrow: false })),
+  })
   const exploded = renderDrawCalls(explodedParts, {
     ...lampRenderOptions,
     explosionLines,
   })
   expect(exploded.bitmap.data).not.toEqual(explodedWithoutGuides.bitmap.data)
+  expect(exploded.bitmap.data).not.toEqual(explodedWithoutArrows.bitmap.data)
   await expect(
     sideBySide(
       await encodePNG(assembled.bitmap),
       await encodePNG(exploded.bitmap),
-      ["Assembled lamp", "Shade lifted 60 mm + guides"],
+      ["Assembled lamp", "Shade lifts 60 mm / arrows on"],
     ),
   ).toMatchPngSnapshot(import.meta.path)
 })

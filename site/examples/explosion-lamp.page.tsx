@@ -5,10 +5,16 @@ import {
   lampRenderOptions,
 } from "../../tests/fixtures/reference-lamp"
 
+const rimPoints = [
+  [-36 / Math.SQRT2, 36 / Math.SQRT2],
+  [36, 0],
+] as const
+
 export default function ExplosionLamp() {
   const canvas = useRef<HTMLCanvasElement>(null)
   const [exploded, setExploded] = useState(true)
   const [guides, setGuides] = useState(true)
+  const [arrows, setArrows] = useState(true)
 
   useEffect(() => {
     const { bitmap } = renderDrawCalls(createLampDrawCalls(exploded ? 60 : 0), {
@@ -16,13 +22,14 @@ export default function ExplosionLamp() {
       supersampling: 1,
       explosionLines:
         exploded && guides
-          ? [-1, 1].map((side) => ({
+          ? rimPoints.map(([x, z]) => ({
               points: [
-                [side * 36, 68, 0],
-                [side * 36, 128, 0],
+                [x, 68, z],
+                [x, 128, z],
               ],
               color: [0.015, 0.04, 0.08],
               dashed: true,
+              arrow: arrows,
             }))
           : [],
     })
@@ -37,7 +44,7 @@ export default function ExplosionLamp() {
         0,
         0,
       )
-  }, [exploded, guides])
+  }, [exploded, guides, arrows])
 
   return (
     <main
@@ -51,7 +58,7 @@ export default function ExplosionLamp() {
       <h1>Lamp explosion guides</h1>
       <p>
         The shade lifts 60 mm. Dashed guides join matching points on its lower
-        rim.
+        rim, with optional arrows pointing upward.
       </p>
       <div style={{ display: "flex", gap: 24 }}>
         <label>
@@ -69,6 +76,15 @@ export default function ExplosionLamp() {
             onChange={(event) => setGuides(event.target.checked)}
           />{" "}
           Show dashed guides
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={arrows}
+            onChange={(event) => setArrows(event.target.checked)}
+            disabled={!exploded || !guides}
+          />{" "}
+          Show arrows
         </label>
       </div>
       <canvas

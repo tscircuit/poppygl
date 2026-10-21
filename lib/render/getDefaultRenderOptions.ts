@@ -20,6 +20,11 @@ export interface ExplosionLine {
   color?: readonly [number, number, number]
   /** Defaults to true. Visible segments respect scene depth. */
   dashed?: boolean
+  /** Add a solid arrowhead at the last point, following the final segment.
+   * Defaults to false. The arrowhead is 10 output pixels long (or shorter for
+   * short segments), independent of camera distance and supersampling.
+   */
+  arrow?: boolean
 }
 
 export type CameraUp = "y+" | "y-" | "x+" | "x-" | "z+" | "z-"
@@ -79,7 +84,7 @@ export interface RenderOptions {
   showHiddenEdges: boolean | null
   /** Width of visible and hidden mesh edges in output pixels. */
   edgeWidth: number
-  /** Width of glTF LINES and finite grid lines in output pixels. */
+  /** Width of glTF LINES, finite grid lines, and explosion guides in output pixels. */
   lineWidth: number
   /** Opacity of dashed, occluded mesh edges, from 0 to 1. */
   hiddenEdgeOpacity: number
