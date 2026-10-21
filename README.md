@@ -208,20 +208,33 @@ The only contract is that `buffers` is an array of `Uint8Array` instances and `i
 ## Explosion guide lines
 
 Pass `explosionLines` to any render entrypoint to draw polylines between assembled
-and displaced part positions. The caller supplies the points in the same glTF
-scene frame and units as the geometry (normally right-handed, +Y up):
+and displaced part positions. The caller moves the geometry and supplies the
+points in the same glTF scene frame and units (normally right-handed, +Y up).
+
+This lamp is adapted from [core's reference-surface lamp](https://github.com/tscircuit/core/blob/81bef4337570e3ac4d7dd6d30ab63481304e8147/tests/assembly/fixtures/reference-surface-lamp.tsx).
+Its base, hollow blue stem, and bulb stay in place while the hollow shade,
+mounting collar, and three spokes move together by **+60 mm on scene Y**. The
+shade mount moves from Y=92 to Y=152. Two dashed guides join corresponding points
+on its lower rim, from Y=68 to Y=128:
+
+![Assembled lamp and shade lifted 60 mm with dashed explosion guides](tests/render/__snapshots__/explosion-lamp.snap.png)
 
 ```ts
-const png = await renderGLTFToPNGFromGLB(glb, {
-  explosionLines: [
-    {
-      points: [[0, 10, 0], [0, 30, 0], [40, 30, 0]],
-      color: [0.08, 0.2, 0.35], // Linear RGB, 0..1; optional.
-      dashed: true, // Default; false gives a solid guide.
-    },
-  ],
+// explodedLampGlb already contains the shade translated +60 mm on scene Y.
+const png = await renderGLTFToPNGFromGLB(explodedLampGlb, {
+  explosionLines: [-1, 1].map((side) => ({
+    points: [[side * 36, 68, 0], [side * 36, 128, 0]],
+    color: [0.015, 0.04, 0.08], // Linear RGB, 0..1; optional.
+    dashed: true, // Default; false gives a solid guide.
+  })),
 })
 ```
+
+The deterministic [lamp fixture](tests/fixtures/reference-lamp.ts) and
+[visual test](tests/render/explosion-lamp.test.ts) generate the comparison without
+network assets. Open the `explosion-lamp` Cosmos example to toggle the shade and
+guides interactively. The separate synthetic explosion-lines snapshot exercises
+elbows, geometry occlusion, and camera clipping.
 
 Guides respect scene depth, do not write to the depth buffer, and render after
 geometry denoising. Their points contribute to automatic camera framing. Lines
