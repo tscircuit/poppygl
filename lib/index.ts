@@ -78,5 +78,5 @@ export function renderSceneFromGLTF(
   return renderDrawCalls(scene.drawCalls, options, imageFactory)
 }
 
-export { createEngineeringSection } from "./render/createEngineeringSection"
-export type { EngineeringSection } from "./render/createEngineeringSection"
+export { createOutlineSection } from "./render/createOutlineSection"
+export type { OutlineSection } from "./render/createOutlineSection"

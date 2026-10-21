@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test"
 import { primitives } from "@jscad/modeling"
 import { createEdgeDrawCall, encodePNG, renderDrawCalls } from "../../lib"
-import { mesh, options } from "../fixtures/engineering"
+import { mesh, options } from "../fixtures/outline"
 import "../fixtures/preload"
 
 test("smooth faceted models gain silhouettes without triangle diagonals", async () => {
@@ -20,6 +20,6 @@ test("smooth faceted models gain silhouettes without triangle diagonals", async 
   ).toBeLessThanOrEqual(8)
   await expect(encodePNG(result.bitmap)).toMatchPngSnapshot(
     import.meta.path,
-    "engineering-cylinder",
+    "outline-cylinder",
   )
 })

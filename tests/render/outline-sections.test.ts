@@ -1,8 +1,8 @@
 import { expect, test } from "bun:test"
 import { mat4 } from "gl-matrix"
 import { primitives } from "@jscad/modeling"
-import { createEngineeringSection, encodePNG, renderDrawCalls } from "../../lib"
-import { mesh, options, ink, comparison } from "../fixtures/engineering"
+import { createOutlineSection, encodePNG, renderDrawCalls } from "../../lib"
+import { mesh, options, ink, comparison } from "../fixtures/outline"
 import "../fixtures/preload"
 
 test("section caps are hatched, keep cavities empty, and respect transformed planes", async () => {
@@ -32,7 +32,7 @@ test("section caps are hatched, keep cavities empty, and respect transformed pla
     keepSide: "less" as const,
     hatchSpacing: 0.2,
   }
-  const cut = createEngineeringSection([tube], section)
+  const cut = createOutlineSection([tube], section)
   expect(cut.openChains).toBe(0)
   const cap = cut.drawCalls.find((dc) => dc.material.baseColorTexture)!
   let area = 0
@@ -69,7 +69,7 @@ test("section caps are hatched, keep cavities empty, and respect transformed pla
   const transformed = mesh()
   mat4.translate(transformed.model, transformed.model, [5, 2, -3])
   mat4.scale(transformed.model, transformed.model, [2, 3, 4])
-  const worldCut = createEngineeringSection([transformed], {
+  const worldCut = createOutlineSection([transformed], {
     axis: "x",
     offset: 5,
     keepSide: "greater",
@@ -82,6 +82,6 @@ test("section caps are hatched, keep cavities empty, and respect transformed pla
   )
   await expect(encodePNG(comparison([image, opposite]))).toMatchPngSnapshot(
     import.meta.path,
-    "engineering-section",
+    "outline-section",
   )
 })

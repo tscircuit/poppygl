@@ -7,7 +7,7 @@ export type SectionAxis = "x" | "y" | "z"
 type Point2 = [number, number]
 
 /** Axis-aligned plane in world/glTF coordinates, in model scene units. */
-export interface EngineeringSection {
+export interface OutlineSection {
   axis: SectionAxis
   offset: number
   keepSide: "less" | "greater"
@@ -142,9 +142,9 @@ function contains(p: Point2, polygon: Point2[]) {
 /** Prepare opaque monochrome section geometry without modifying the input.
  * Separate primitives are capped independently; open surfaces remain uncapped.
  */
-export function createEngineeringSection(
+export function createOutlineSection(
   drawCalls: DrawCall[],
-  spec: EngineeringSection,
+  spec: OutlineSection,
 ) {
   const k = spec.axis === "x" ? 0 : spec.axis === "y" ? 1 : 2
   const u = (k + 1) % 3,
@@ -157,7 +157,7 @@ export function createEngineeringSection(
     !Number.isFinite(spacing) ||
     spacing <= 0
   )
-    throw new Error("Invalid engineering section plane or hatch spacing")
+    throw new Error("Invalid outline section plane or hatch spacing")
   const output: DrawCall[] = []
   let openChains = 0
   const texture = createUint8Bitmap(128, 128)
@@ -318,7 +318,7 @@ export function createEngineeringSection(
     if (cap.length)
       output.push({
         ...mesh,
-        engineeringSectionCap: true,
+        outlineSectionCap: true,
         positions: new Float32Array(cap),
         uvs: new Float32Array(uv),
         material: {

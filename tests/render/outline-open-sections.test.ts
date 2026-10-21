@@ -1,10 +1,10 @@
 import { expect, test } from "bun:test"
-import { createEngineeringSection } from "../../lib"
-import { mesh } from "../fixtures/engineering"
+import { createOutlineSection } from "../../lib"
+import { mesh } from "../fixtures/outline"
 
 test("sections outside or tangent to a mesh do not fabricate caps; open surfaces stay open", () => {
   for (const offset of [1, 10, -1, -10]) {
-    const cut = createEngineeringSection([mesh()], {
+    const cut = createOutlineSection([mesh()], {
       axis: "x",
       offset,
       keepSide: "less",
@@ -13,7 +13,7 @@ test("sections outside or tangent to a mesh do not fabricate caps; open surfaces
   }
   const open = mesh()
   open.positions = new Float32Array([-1, -1, 0, 1, -1, 0, 0, 1, 0])
-  const cut = createEngineeringSection([open], {
+  const cut = createOutlineSection([open], {
     axis: "x",
     offset: 0,
     keepSide: "less",
@@ -21,7 +21,7 @@ test("sections outside or tangent to a mesh do not fabricate caps; open surfaces
   expect(cut.openChains).toBe(1)
   expect(cut.drawCalls.length).toBe(1)
   expect(() =>
-    createEngineeringSection([mesh()], {
+    createOutlineSection([mesh()], {
       axis: "x",
       offset: 0,
       keepSide: "less",

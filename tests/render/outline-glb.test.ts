@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises"
 import { renderGLTFToPNGFromGLB, renderGLTFToPNGFromURL } from "../../lib"
 import "../fixtures/preload"
 
-test("engineering render works for GLB bytes and GLB URLs", async () => {
+test("outline render works for GLB bytes and GLB URLs", async () => {
   const glb = new Uint8Array(
     await readFile(
       new URL(

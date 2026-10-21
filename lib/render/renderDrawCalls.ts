@@ -1,4 +1,4 @@
-import { createEngineeringSection } from "./createEngineeringSection"
+import { createOutlineSection } from "./createOutlineSection"
 import { buildCamera, type Camera } from "../camera/buildCamera"
 import { computeWorldAABB } from "../gltf/computeWorldAABB"
 import { createGrid } from "../gltf/createGrid"
@@ -38,7 +38,7 @@ export function renderDrawCalls(
   if (options.section) {
     if (options.renderStyle !== "outline")
       throw new Error("section requires renderStyle: outline")
-    drawCalls = createEngineeringSection(drawCalls, options.section).drawCalls
+    drawCalls = createOutlineSection(drawCalls, options.section).drawCalls
   }
   const renderWidth = options.width * options.supersampling
   const renderHeight = options.height * options.supersampling
@@ -96,7 +96,7 @@ export function renderDrawCalls(
     options.renderStyle === "outline"
       ? drawCalls.map(
           (dc): DrawCall =>
-            dc.mode === 1 || dc.engineeringSectionCap
+            dc.mode === 1 || dc.outlineSectionCap
               ? dc
               : {
                   ...dc,

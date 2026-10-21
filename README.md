@@ -296,7 +296,7 @@ controls both the shaft and arrowhead stroke width. Omit `arrow` or set it to
 
 Happy rendering!
 
-### Engineering drawings
+### Outline rendering
 
 ```ts
 const png = await renderGLTFToPNGFromURL("https://example.com/housing.glb", {
@@ -339,13 +339,13 @@ const png = await renderGLTFToPNGFromGLB(glbBytes, {
 The plane is specified in **world glTF coordinates**, normally +Y up, using model
 scene units. `less` retains axis coordinates <= offset; `greater` retains >= offset.
 Closed cut surfaces receive diagonal hatching in the section plane (spacing defaults
-to one scene unit). Nested loops preserve cavities. Open cut chains remain uncapped; non-manifold inputs are unsupported. `createEngineeringSection` exposes the prepared draw calls and
+to one scene unit). Nested loops preserve cavities. Open cut chains remain uncapped; non-manifold inputs are unsupported. `createOutlineSection` exposes the prepared draw calls and
 `openChains` count for callers that need to report incomplete caps. Primitives are
 capped independently; surfaces split across separate primitives cannot form a cap.
 Sections outside or tangent to a mesh do not create artificial caps. Section cuts
 currently require outline style; shaded sections are not supported.
 
-These are raster engineering illustrations, not CAD/B-rep exports: silhouettes
+These are raster outline illustrations, not CAD/B-rep exports: silhouettes
 follow the input tessellation, crease extraction uses a 30-degree threshold, and
 hidden lines are resolved against raster depth. Dimension annotations, paper sheet
 layout and TSX/core integration are separate downstream work.

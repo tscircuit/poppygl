@@ -1,4 +1,4 @@
-import type { EngineeringSection } from "./createEngineeringSection"
+import type { OutlineSection } from "./createOutlineSection"
 import type { GridOptions } from "../gltf/types"
 
 export const DEFAULT_LIGHT_DIR = [-0.4, -0.9, -0.2] as const
@@ -61,7 +61,7 @@ export interface RenderOptions {
   /** White opaque surfaces with black boundary, crease and silhouette edges. */
   renderStyle: "shaded" | "outline"
   /** Section cuts are supported in outline style only. */
-  section: EngineeringSection | null
+  section: OutlineSection | null
   /** Outline defaults to orthographic; existing renders stay perspective. */
   projection: "perspective" | "orthographic"
   /** Vertical span in scene units. Null automatically fits the world bounds. */

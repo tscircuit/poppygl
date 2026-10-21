@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test"
 import { vec3 } from "gl-matrix"
 import { renderDrawCalls, resolveRenderOptions } from "../../lib"
-import { mesh, options } from "../fixtures/engineering"
+import { mesh, options } from "../fixtures/outline"
 
 test("orthographic projection preserves size across camera distances and fits portrait bounds", () => {
   const cube = mesh()
