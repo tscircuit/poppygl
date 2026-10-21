@@ -59,10 +59,10 @@ export function hexToRgb(hex: string): [number, number, number] | null {
 
 export interface RenderOptions {
   /** White opaque surfaces with black boundary, crease and silhouette edges. */
-  renderStyle: "shaded" | "engineering"
-  /** Section cuts are supported in engineering style only. */
+  renderStyle: "shaded" | "outline"
+  /** Section cuts are supported in outline style only. */
   section: EngineeringSection | null
-  /** Engineering defaults to orthographic; existing renders stay perspective. */
+  /** Outline defaults to orthographic; existing renders stay perspective. */
   projection: "perspective" | "orthographic"
   /** Vertical span in scene units. Null automatically fits the world bounds. */
   orthographicHeight: number | null

@@ -30,7 +30,7 @@ export function mesh(shape = primitives.cuboid({ size: [2, 2, 2] })): DrawCall {
   }
 }
 export const options = {
-  renderStyle: "engineering" as const,
+  renderStyle: "outline" as const,
   width: 200,
   height: 200,
   camPos: [4, 3, 6] as const,

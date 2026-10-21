@@ -300,7 +300,7 @@ Happy rendering!
 
 ```ts
 const png = await renderGLTFToPNGFromURL("https://example.com/housing.glb", {
-  renderStyle: "engineering",
+  renderStyle: "outline",
   width: 1200,
   height: 900,
   supersampling: 2,
@@ -311,7 +311,7 @@ const png = await renderGLTFToPNGFromURL("https://example.com/housing.glb", {
 })
 ```
 
-`renderStyle: "engineering"` uses white opaque surfaces, black boundary/crease
+`renderStyle: "outline"` uses white opaque surfaces, black boundary/crease
 edges and view-dependent silhouettes, and orthographic projection by default.
 Hidden edges are omitted by default, including model-level hidden-edge flags;
 `showHiddenEdges: true` adds dashed occluded strokes with `hiddenEdgeOpacity`.
@@ -319,18 +319,18 @@ Materials, textures, vertex colors, transparency and lighting are ignored in thi
 style. Input meshes are not modified. Existing shaded rendering defaults stay
 unchanged. The same options work with `renderDrawCalls`, GLB bytes, and glTF/GLB URLs.
 
-`projection: "orthographic"` also works independently of engineering style.
+`projection: "orthographic"` also works independently of outline style.
 `orthographicHeight` sets the vertical field of view in model scene units; omit it
 to fit the transformed scene bounds with a margin. Orthographic projection preserves
 parallel edges and apparent size with distance. `camPos`, `lookAt`, `up` and
 `cameraRotation` keep their existing meanings. For an axis-aligned view choose a
 camera on that axis and an `up` axis that is not parallel to it.
 
-Section views are available in engineering style:
+Section views are available in outline style:
 
 ```ts
 const png = await renderGLTFToPNGFromGLB(glbBytes, {
-  renderStyle: "engineering",
+  renderStyle: "outline",
   up: "y+",
   section: { axis: "x", offset: 5, keepSide: "less", hatchSpacing: 1 },
 })
@@ -343,7 +343,7 @@ to one scene unit). Nested loops preserve cavities. Open cut chains remain uncap
 `openChains` count for callers that need to report incomplete caps. Primitives are
 capped independently; surfaces split across separate primitives cannot form a cap.
 Sections outside or tangent to a mesh do not create artificial caps. Section cuts
-currently require engineering style; shaded sections are not supported.
+currently require outline style; shaded sections are not supported.
 
 These are raster engineering illustrations, not CAD/B-rep exports: silhouettes
 follow the input tessellation, crease extraction uses a 30-degree threshold, and

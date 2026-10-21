@@ -16,7 +16,7 @@ export interface Material {
 }
 
 export interface DrawCall {
-  /** Generated section cap; preserve its hatch material in engineering style. */
+  /** Generated section cap; preserve its hatch material in outline style. */
   engineeringSectionCap?: boolean
   positions: Float32Array
   normals: Float32Array | null

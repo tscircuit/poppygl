@@ -36,8 +36,8 @@ export function renderDrawCalls(
 ): RenderResult {
   const options = resolveRenderOptions(optionsInput)
   if (options.section) {
-    if (options.renderStyle !== "engineering")
-      throw new Error("section requires renderStyle: engineering")
+    if (options.renderStyle !== "outline")
+      throw new Error("section requires renderStyle: outline")
     drawCalls = createEngineeringSection(drawCalls, options.section).drawCalls
   }
   const renderWidth = options.width * options.supersampling
@@ -93,7 +93,7 @@ export function renderDrawCalls(
   }
 
   const allDrawCalls =
-    options.renderStyle === "engineering"
+    options.renderStyle === "outline"
       ? drawCalls.map(
           (dc): DrawCall =>
             dc.mode === 1 || dc.engineeringSectionCap
@@ -255,7 +255,7 @@ export function renderDrawCalls(
     const edgeDrawCall = createEdgeDrawCall(
       dc,
       30,
-      options.renderStyle === "engineering"
+      options.renderStyle === "outline"
         ? { view: camera.view, projection: options.projection }
         : undefined,
     )

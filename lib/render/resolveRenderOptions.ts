@@ -38,15 +38,15 @@ export function resolveRenderOptions(
       ? Math.max(1, Math.floor(options.supersampling))
       : DEFAULT_RENDER_OPTIONS.supersampling
 
-  const engineering = options.renderStyle === "engineering"
+  const outline = options.renderStyle === "outline"
 
   return {
     ...DEFAULT_RENDER_OPTIONS,
     ...options,
-    renderStyle: engineering ? "engineering" : "shaded",
+    renderStyle: outline ? "outline" : "shaded",
     projection:
       options.projection === "orthographic" ||
-      (engineering && options.projection !== "perspective")
+      (outline && options.projection !== "perspective")
         ? "orthographic"
         : "perspective",
     orthographicHeight:
@@ -55,7 +55,7 @@ export function resolveRenderOptions(
       options.orthographicHeight > 0
         ? options.orthographicHeight
         : null,
-    ...(engineering
+    ...(outline
       ? {
           realistic: false,
           ambient: 1,
@@ -79,11 +79,11 @@ export function resolveRenderOptions(
         : DEFAULT_RENDER_OPTIONS.lookAt,
     up: resolveCameraUp(options.up),
     cameraRotation: resolveCameraRotation(options.cameraRotation),
-    showEdges: options.showEdges ?? engineering,
+    showEdges: options.showEdges ?? outline,
     showHiddenEdges:
       typeof options.showHiddenEdges === "boolean"
         ? options.showHiddenEdges
-        : engineering
+        : outline
           ? false
           : null,
     edgeWidth: resolveWidth(options.edgeWidth),

@@ -13,7 +13,7 @@ test("engineering render works for GLB bytes and GLB URLs", async () => {
     ),
   )
   const options = {
-    renderStyle: "engineering" as const,
+    renderStyle: "outline" as const,
     width: 360,
     height: 280,
     supersampling: 2,
