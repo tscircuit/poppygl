@@ -23,7 +23,6 @@
     "@biomejs/biome": "^2.2.4",
     "@jscad/modeling": "2.13.0",
     "@playwright/test": "^1.60.0",
-    "@tscircuit/alphabet": "0.0.23",
     "@types/bun": "^1.2.23",
     "@types/readable-stream": "^4.0.21",
     "jscad-electronics": "0.0.187",
@@ -43,6 +42,7 @@
     "gl-matrix": "^3.4.4",
     "pureimage": "^0.4.18",
     "readable-stream": "^4.7.0",
-    "earcut": "^3.2.4"
+    "earcut": "^3.2.4",
+    "@tscircuit/alphabet": "0.0.23"
   }
 }
