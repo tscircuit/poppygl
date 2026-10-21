@@ -1,6 +1,10 @@
 import { mat4 } from "gl-matrix"
 import type { BitmapLike } from "../image/createUint8Bitmap"
 import type { GLTFResources, GLTFScene, DrawCall, Material } from "./types"
+import {
+  GLTF_WRAP_REPEAT,
+  type TextureWrap,
+} from "../utils/wrapTextureCoordinate"
 
 const COMPONENT_INFO = {
   5120: {
@@ -268,6 +272,16 @@ function nodeLocalMatrix(node: any) {
   return m
 }
 
+function getTextureWrap(gltf: GLTF, texture: any): TextureWrap {
+  const sampler = Number.isInteger(texture?.sampler)
+    ? (gltf.samplers || [])[texture.sampler]
+    : undefined
+  return {
+    wrapS: sampler?.wrapS ?? GLTF_WRAP_REPEAT,
+    wrapT: sampler?.wrapT ?? GLTF_WRAP_REPEAT,
+  }
+}
+
 function getMaterial(
   gltf: GLTF,
   textures: any[],
@@ -283,12 +297,14 @@ function getMaterial(
     number,
   ]
   let texImg: BitmapLike | null = null
+  let texWrap: TextureWrap | undefined
   if (pbr.baseColorTexture && Number.isInteger(pbr.baseColorTexture.index)) {
     const texIndex = pbr.baseColorTexture.index as number
     const tex = textures[texIndex]
     if (tex && Number.isInteger(tex.source)) {
       const imageIndex = tex.source as number
       texImg = images[imageIndex] || null
+      texWrap = getTextureWrap(gltf, tex)
     }
   }
   const alphaMode = (
@@ -301,11 +317,16 @@ function getMaterial(
   return {
     baseColorFactor: factor,
     baseColorTexture: texImg,
+    baseColorTextureWrap: texWrap,
     metallicFactor: pbr.metallicFactor ?? 1,
     roughnessFactor: pbr.roughnessFactor ?? 1,
     emissiveFactor: material.emissiveFactor ?? [0, 0, 0],
     emissiveTexture:
       images[textures[material.emissiveTexture?.index]?.source] ?? null,
+    emissiveTextureWrap: getTextureWrap(
+      gltf,
+      textures[material.emissiveTexture?.index],
+    ),
     emissiveStrength:
       material.extensions?.KHR_materials_emissive_strength?.emissiveStrength ??
       1,

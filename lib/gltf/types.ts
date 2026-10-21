@@ -1,13 +1,16 @@
 import type { mat4 } from "gl-matrix"
 import type { BitmapLike } from "../image/createUint8Bitmap"
+import type { TextureWrap } from "../utils/wrapTextureCoordinate"
 
 export interface Material {
   baseColorFactor: [number, number, number, number]
   baseColorTexture: BitmapLike | null
+  baseColorTextureWrap?: TextureWrap
   metallicFactor?: number
   roughnessFactor?: number
   emissiveFactor?: [number, number, number]
   emissiveTexture?: BitmapLike | null
+  emissiveTextureWrap?: TextureWrap
   emissiveStrength?: number
   alphaMode?: "OPAQUE" | "MASK" | "BLEND"
   alphaCutoff?: number
