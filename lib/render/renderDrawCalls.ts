@@ -96,7 +96,7 @@ export function renderDrawCalls(
     options.renderStyle === "engineering"
       ? drawCalls.map(
           (dc): DrawCall =>
-            dc.mode === 1 || options.section
+            dc.mode === 1 || dc.engineeringSectionCap
               ? dc
               : {
                   ...dc,

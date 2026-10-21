@@ -318,6 +318,7 @@ export function createEngineeringSection(
     if (cap.length)
       output.push({
         ...mesh,
+        engineeringSectionCap: true,
         positions: new Float32Array(cap),
         uvs: new Float32Array(uv),
         material: {

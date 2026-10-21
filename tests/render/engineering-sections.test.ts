@@ -59,6 +59,12 @@ test("section caps are hatched, keep cavities empty, and respect transformed pla
     up: "z+",
     section: { ...section, keepSide: "greater" },
   }).bitmap
+  const prepared = renderDrawCalls(cut.drawCalls, {
+    ...options,
+    camPos: [3, 4, 6],
+    up: "z+",
+  }).bitmap
+  expect(prepared.data).toEqual(image.data)
   expect(ink(image.data)).toBeGreaterThan(20000)
   const transformed = mesh()
   mat4.translate(transformed.model, transformed.model, [5, 2, -3])
