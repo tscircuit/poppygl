@@ -1,5 +1,6 @@
 import jscad from "@jscad/modeling"
 import type Geom3 from "@jscad/modeling/src/geometries/geom3/type"
+import type { generalize as generalizeGeometry } from "@jscad/modeling/src/operations/modifiers/generalize"
 import { mat4 } from "gl-matrix"
 import {
   computeSmoothNormals,
@@ -9,7 +10,10 @@ import {
 
 const { cylinder, cuboid, sphere } = jscad.primitives
 const { subtract, union } = jscad.booleans
-const { translate, rotateZ } = jscad.transforms
+const { rotateZ } = jscad.transforms
+// The pinned JSCAD type barrel expects a missing default export for generalize.
+const generalize = jscad.modifiers
+  .generalize as unknown as typeof generalizeGeometry
 const segments = 64
 
 /**
@@ -71,20 +75,17 @@ function lampParts(): {
   ]
 }
 
-// JSCAD polygons are convex. Fan triangulation keeps the fixture independent of
-// THREE and exports exactly the geometry PoppyGL's triangle renderer consumes.
+// JSCAD's standard export step snaps shared vertices and inserts T-junctions
+// before triangulating, so adjacent polygons produce conforming mesh edges.
 function toDrawCall({
   geometry,
   color,
   mountY,
 }: ReturnType<typeof lampParts>[number]): DrawCall {
+  const triangles = generalize({ snap: true, triangulate: true }, geometry)
   const positions: number[] = []
-  for (const { vertices } of jscad.geometries.geom3.toPolygons(geometry)) {
-    for (let i = 1; i < vertices.length - 1; i++) {
-      for (const vertex of [vertices[0]!, vertices[i]!, vertices[i + 1]!]) {
-        positions.push(...vertex)
-      }
-    }
+  for (const { vertices } of jscad.geometries.geom3.toPolygons(triangles)) {
+    for (const vertex of vertices) positions.push(...vertex)
   }
   const positionArray = Float32Array.from(positions)
   const model = mat4.fromTranslation(mat4.create(), [0, mountY, 0])
