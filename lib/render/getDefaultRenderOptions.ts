@@ -73,6 +73,16 @@ export interface RenderOptions {
   debugPointColor?: readonly [number, number, number] | null
   debugLabelColor?: readonly [number, number, number] | null
   explosionLines?: readonly ExplosionLine[] | null
+  /** Draw visible boundary and crease edges on every triangle mesh. */
+  showEdges: boolean
+  /** Override model showHiddenEdges flags; null preserves each model's flag. */
+  showHiddenEdges: boolean | null
+  /** Width of visible and hidden mesh edges in output pixels. */
+  edgeWidth: number
+  /** Width of glTF LINES and finite grid lines in output pixels. */
+  lineWidth: number
+  /** Opacity of dashed, occluded mesh edges, from 0 to 1. */
+  hiddenEdgeOpacity: number
 }
 
 export type RenderOptionsInput = Partial<RenderOptions>
@@ -98,6 +108,11 @@ export const DEFAULT_RENDER_OPTIONS: RenderOptions = {
   debugPointColor: null,
   debugLabelColor: null,
   explosionLines: null,
+  showEdges: false,
+  showHiddenEdges: null,
+  edgeWidth: 1,
+  lineWidth: 1,
+  hiddenEdgeOpacity: 0.35,
 }
 
 export function getDefaultRenderOptions(): RenderOptions {

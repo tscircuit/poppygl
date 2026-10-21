@@ -133,9 +133,42 @@ const png = await renderGLTFToPNGFromGLB(glb, {
 - `cull`: enable back-face culling (default `true`).
 - `backgroundColor`: a hex string such as `"#e5e7eb"`, or an RGB tuple with values from 0 to 1.
 - `grid`: show a ground grid (default `false`), or provide grid options.
+- `showEdges`: draw visible boundary and crease edges on all triangle meshes (default `false`).
+- `showHiddenEdges`: draw visible edges plus faint dashed occluded edges on all meshes. Omit it or use `null` to preserve each model's flag; `false` disables those flags.
+- `edgeWidth`: width of both visible and hidden mesh edges in output pixels (default `1`).
+- `lineWidth`: width of glTF `LINES` and finite grid lines in output pixels (default `1`).
+- `hiddenEdgeOpacity`: opacity of dashed occluded mesh edges, from `0` to `1` (default `0.35`).
 - `fetchImpl`: optional override for resource loading (must match the `fetch` signature).
 
 You can inspect the defaults via `getDefaultRenderOptions()` or reuse the internal merge logic with `resolveRenderOptions()`.
+
+### Thicker edges and hidden geometry
+
+Enable edges directly when rendering an ordinary glTF or GLB, without editing its metadata:
+
+```ts
+const png = await renderGLTFToPNGFromGLB(glb, {
+  showHiddenEdges: true,
+  edgeWidth: 2.5,
+  hiddenEdgeOpacity: 0.35,
+  supersampling: 2,
+  backgroundColor: "#ffffff",
+})
+```
+
+Use `showEdges: true` for solid visible edges alone. Hidden segments use the
+scene depth buffer and appear dashed; edge overlays never replace geometry depth.
+Boundary and crease edges are extracted from the original triangle geometry,
+excluding coplanar triangulation diagonals. Smooth curved silhouettes are not
+additional extracted edges.
+
+Widths stay constant in the final image when supersampling changes. Positive,
+finite fractional widths are supported; invalid widths fall back to one pixel.
+Wider strokes use antialiased screen-space coverage with round caps in the
+software renderer. They are clipped before the perspective divide and remain
+depth tested across their full width. No GPU or shader runtime is required.
+`lineWidth` also applies to ordinary glTF line primitives and finite grid lines;
+the procedural infinite grid keeps its existing independent styling.
 
 ### Hidden edges for selected sub-models
 

@@ -172,7 +172,9 @@ export function renderDrawCalls(
     for (let i = 0; i < dcs.length; i++) {
       const dc = dcs[i]!
       if (dc.mode === 1) {
-        renderer.drawLines(dc, camera, options.gamma)
+        renderer.drawLines(dc, camera, options.gamma, {
+          width: options.lineWidth * options.supersampling,
+        })
       } else {
         renderer.drawMesh(
           dc,
@@ -221,7 +223,8 @@ export function renderDrawCalls(
   renderer.denoise(options.gamma)
 
   for (const dc of drawCalls) {
-    if (!dc.showHiddenEdges) continue
+    const showHiddenEdges = options.showHiddenEdges ?? dc.showHiddenEdges
+    if (!options.showEdges && !showHiddenEdges) continue
     const edgeDrawCall = createEdgeDrawCall(dc)
     if (!edgeDrawCall) continue
 
@@ -229,14 +232,17 @@ export function renderDrawCalls(
       depthCompare: "less-equal",
       depthWrite: false,
       depthBias: 0.0001,
+      width: options.edgeWidth * options.supersampling,
     })
+    if (!showHiddenEdges) continue
     renderer.drawLines(edgeDrawCall, camera, options.gamma, {
       depthCompare: "greater",
       depthWrite: false,
       depthBias: 0.0001,
       dashed: true,
       dashLength: 4 * options.supersampling,
-      opacity: 0.35,
+      opacity: options.hiddenEdgeOpacity,
+      width: options.edgeWidth * options.supersampling,
     })
   }
 

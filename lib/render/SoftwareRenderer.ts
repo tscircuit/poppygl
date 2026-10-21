@@ -19,6 +19,7 @@ import { clamp } from "../utils/clamp"
 import { clipMeshToNearPlane } from "./clipMeshToNearPlane"
 import type { StudioLighting } from "./StudioLighting"
 import { GeometryDenoiser } from "./GeometryDenoiser"
+import { rasterizeWideLine } from "./rasterizeWideLine"
 
 export interface LightSettings {
   dir: readonly [number, number, number]
@@ -26,6 +27,8 @@ export interface LightSettings {
 }
 
 export interface LineRenderOptions {
+  /** Stroke width in this renderer's raster pixels. Defaults to one. */
+  width?: number
   depthCompare?: "less" | "less-equal" | "greater"
   depthWrite?: boolean
   depthBias?: number
@@ -111,6 +114,7 @@ export class SoftwareRenderer {
     const vScreen = new Array<[number, number]>(vertexCount)
     const vInvW = new Float32Array(vertexCount)
     const vNDCz = new Float32Array(vertexCount)
+    const clipVertices: vec4[] = []
 
     for (let i = 0; i < vertexCount; i++) {
       const p = vec4.fromValues(
@@ -121,6 +125,7 @@ export class SoftwareRenderer {
       )
       const c = vec4.create()
       vec4.transformMat4(c, p, mvp)
+      clipVertices.push(c)
       const invW = 1 / c[3]
       vInvW[i] = invW
 
@@ -161,10 +166,111 @@ export class SoftwareRenderer {
     const depthWrite = options.depthWrite ?? true
     const depthBias = options.depthBias ?? 0
     const dashLength = Math.max(1, options.dashLength ?? 4)
+    const strokeWidth =
+      typeof options.width === "number" &&
+      Number.isFinite(options.width) &&
+      options.width > 0
+        ? options.width
+        : 1
+
+    const drawFragment = (xi: number, yi: number, z: number, coverage = 1) => {
+      if (z < 0 || z > 1) return
+      const di = yi * this.width + xi
+      const currentDepth = this.depth[di]!
+      const passesDepth =
+        depthCompare === "greater"
+          ? z > currentDepth + depthBias
+          : depthCompare === "less-equal"
+            ? z <= currentDepth + depthBias
+            : z < currentDepth - depthBias
+      if (!passesDepth) return
+      if (depthWrite) this.depth[di] = z
+      const pixelIndex = di * 4
+      const destinationAlpha = this.buffer[pixelIndex + 3]! / 255
+      const alpha = sourceAlpha * coverage
+      const oneMinusSourceAlpha = 1 - alpha
+      const outAlpha = alpha + destinationAlpha * oneMinusSourceAlpha
+      const blend = (channel: number, offset: number) =>
+        outAlpha === 0
+          ? 0
+          : (channel * alpha +
+              this.buffer[pixelIndex + offset]! *
+                destinationAlpha *
+                oneMinusSourceAlpha) /
+            outAlpha
+      this.setPixel(
+        xi,
+        yi,
+        blend(r255, 0),
+        blend(g255, 1),
+        blend(b255, 2),
+        outAlpha * 255,
+      )
+    }
 
     for (let i = 0; i < indices.length; i += 2) {
       const i0 = indices[i + 0]!
       const i1 = indices[i + 1]!
+
+      if (strokeWidth !== 1) {
+        // Wide edge pixels can lie inside the source face, whose depth slopes
+        // away from the centerline. Compare at the same pixel-center sample as
+        // drawMesh, rather than offsetting the entire stroke toward the eye.
+        // Unrelated, nearer geometry continues to occlude the edge normally.
+        const sourceFaces = (mesh.edgeAdjacentVertices?.[i / 2] ?? []).flatMap(
+          (third) => {
+            if (
+              clipVertices[i0]![3] <= 0 ||
+              clipVertices[i1]![3] <= 0 ||
+              clipVertices[third]![3] <= 0
+            )
+              return []
+            const a = vScreen[i0]!
+            const b = vScreen[i1]!
+            const c = vScreen[third]!
+            const area = edge(a, b, c)
+            if (!Number.isFinite(area) || area === 0) return []
+            return [{ a, b, c, inverseArea: 1 / area, third }]
+          },
+        )
+        rasterizeWideLine(
+          clipVertices[i0]!,
+          clipVertices[i1]!,
+          this.width,
+          this.height,
+          strokeWidth,
+          options.dashed ?? false,
+          dashLength,
+          sourceFaces.length === 0
+            ? drawFragment
+            : (x, y, z, coverage) => {
+                let surfaceDepth = Infinity
+                const sample: [number, number] = [x + 0.5, y + 0.5]
+                for (const face of sourceFaces) {
+                  const l0 = edge(face.b, face.c, sample) * face.inverseArea
+                  const l1 = edge(face.c, face.a, sample) * face.inverseArea
+                  const l2 = 1 - l0 - l1
+                  if (l0 < -1e-6 || l1 < -1e-6 || l2 < -1e-6) continue
+                  const depth =
+                    (l0 * vNDCz[i0]! +
+                      l1 * vNDCz[i1]! +
+                      l2 * vNDCz[face.third]!) *
+                      0.5 +
+                    0.5
+                  if (depth >= 0 && depth <= 1) {
+                    surfaceDepth = Math.min(surfaceDepth, depth)
+                  }
+                }
+                drawFragment(
+                  x,
+                  y,
+                  surfaceDepth === Infinity ? z : surfaceDepth,
+                  coverage,
+                )
+              },
+        )
+        continue
+      }
 
       const v0s = vScreen[i0]!
       const v1s = vScreen[i1]!
@@ -219,48 +325,7 @@ export class SoftwareRenderer {
           z >= 0 &&
           z <= 1
         ) {
-          const di = yi * this.width + xi
-          const currentDepth = this.depth[di]!
-          const passesDepth =
-            depthCompare === "greater"
-              ? z > currentDepth + depthBias
-              : depthCompare === "less-equal"
-                ? z <= currentDepth + depthBias
-                : z < currentDepth - depthBias
-          if (passesDepth) {
-            if (depthWrite) this.depth[di] = z
-
-            const pixelIndex = di * 4
-            const destinationAlpha = this.buffer[pixelIndex + 3]! / 255
-            const oneMinusSourceAlpha = 1 - sourceAlpha
-            const outAlpha =
-              sourceAlpha + destinationAlpha * oneMinusSourceAlpha
-            const outR =
-              outAlpha === 0
-                ? 0
-                : (r255 * sourceAlpha +
-                    this.buffer[pixelIndex + 0]! *
-                      destinationAlpha *
-                      oneMinusSourceAlpha) /
-                  outAlpha
-            const outG =
-              outAlpha === 0
-                ? 0
-                : (g255 * sourceAlpha +
-                    this.buffer[pixelIndex + 1]! *
-                      destinationAlpha *
-                      oneMinusSourceAlpha) /
-                  outAlpha
-            const outB =
-              outAlpha === 0
-                ? 0
-                : (b255 * sourceAlpha +
-                    this.buffer[pixelIndex + 2]! *
-                      destinationAlpha *
-                      oneMinusSourceAlpha) /
-                  outAlpha
-            this.setPixel(xi, yi, outR, outG, outB, outAlpha * 255)
-          }
+          drawFragment(xi, yi, z)
         }
         x += xinc
         y += yinc
