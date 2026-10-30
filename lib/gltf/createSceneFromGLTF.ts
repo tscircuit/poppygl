@@ -392,5 +392,9 @@ export function createSceneFromGLTF(
     traverse(rootIndex, identity)
   }
 
-  return { gltf, drawCalls }
+  return {
+    gltf,
+    drawCalls,
+    explosionLines: scene.extras?.poppygl?.explosionLines,
+  }
 }

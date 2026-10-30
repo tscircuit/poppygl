@@ -245,6 +245,28 @@ Pass `explosionLines` to any render entrypoint to draw polylines between assembl
 and displaced part positions. The caller moves the geometry and supplies the
 points in the same glTF scene frame and units (normally right-handed, +Y up).
 
+The selected glTF scene can embed the same setting in `extras.poppygl.explosionLines`:
+
+```json
+{
+  "scene": 0,
+  "scenes": [{
+    "nodes": [0],
+    "extras": {
+      "poppygl": {
+        "explosionLines": [{ "points": [[0, 0, 0], [0, 20, 0]], "dashed": true }]
+      }
+    }
+  }]
+}
+```
+
+`renderSceneFromGLTF`, the URL renderer, and the GLB renderer use these guides
+when `explosionLines` is omitted. An explicit list replaces the embedded guides;
+`null` or `[]` hides them. Points are already in glTF world coordinates and are
+not transformed by individual nodes. No guide meshes are required, and other
+glTF viewers may ignore this optional metadata.
+
 This lamp is adapted from [core's reference-surface lamp](https://github.com/tscircuit/core/blob/81bef4337570e3ac4d7dd6d30ab63481304e8147/tests/assembly/fixtures/reference-surface-lamp.tsx).
 Its base, hollow blue stem, and bulb stay in place while the hollow shade,
 mounting collar, and three spokes move together by **+60 mm on scene Y**. The

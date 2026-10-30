@@ -3,7 +3,7 @@ import {
   loadGLTFWithResourcesFromURL,
   type LoadGLTFWithResourcesFromURLOptions,
 } from "../gltf/loadGLTFWithResourcesFromURL"
-import { renderDrawCalls } from "./renderDrawCalls"
+import { renderSceneFromGLTF } from "./renderSceneFromGLTF"
 import type { RenderOptionsInput } from "./getDefaultRenderOptions"
 import { pureImageFactory } from "../image/pureImageFactory"
 import { encodePNGToBuffer } from "../image/encodePNGToBuffer"
@@ -21,10 +21,6 @@ export async function renderGLTFToPNGBufferFromURL(
     fetchImpl,
   })
   const scene = createSceneFromGLTF(gltf, resources)
-  const { bitmap } = renderDrawCalls(
-    scene.drawCalls,
-    renderOptions,
-    pureImageFactory,
-  )
+  const { bitmap } = renderSceneFromGLTF(scene, renderOptions, pureImageFactory)
   return encodePNGToBuffer(bitmap)
 }
