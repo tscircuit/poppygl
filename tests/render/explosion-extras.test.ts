@@ -1,3 +1,7 @@
+import { renderGLTFToPNGBuffer } from "../../lib/render/renderGLTFToPNGBuffer"
+import { renderGLTFToPNGBufferFromURL } from "../../lib/render/renderGLTFToPNGBufferFromURL"
+import { renderGLTFToPNGBufferFromGLBBuffer } from "../../lib/render/renderGLTFToPNGBufferFromGLBBuffer"
+import { decodeImageFromBuffer } from "../../lib/gltf/resourceUtils"
 import { expect, test } from "bun:test"
 import {
   createSceneFromGLTF,
@@ -135,6 +139,20 @@ test("selected-scene extras render like explicit world-space guides without addi
         },
       ),
     ).toEqual(expectedPng)
+  }
+  for (const png of [
+    await renderGLTFToPNGBuffer(document, options, {
+      buffers: [buffer],
+      images: [],
+    }),
+    await renderGLTFToPNGBufferFromGLBBuffer(glb, options),
+    await renderGLTFToPNGBufferFromURL("https://example.test/assembly.glb", {
+      ...options,
+      fetchImpl: async () => new Response(glb),
+    }),
+  ]) {
+    const decoded = await decodeImageFromBuffer(png, "image/png")
+    expect(Array.from(decoded.data)).toEqual(Array.from(explicit.bitmap.data))
   }
   expect(document).toEqual(before)
 })
