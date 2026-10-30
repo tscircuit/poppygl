@@ -1,3 +1,4 @@
+import type { ExplosionLine } from "../render/getDefaultRenderOptions"
 import type { mat4 } from "gl-matrix"
 import type { BitmapLike } from "../image/createUint8Bitmap"
 
@@ -51,6 +52,8 @@ export interface GLTFResources {
 }
 
 export interface GLTFScene {
+  /** Selected scene extras.poppygl.explosionLines, in glTF world coordinates. */
+  explosionLines?: readonly ExplosionLine[]
   drawCalls: DrawCall[]
   gltf: any
 }

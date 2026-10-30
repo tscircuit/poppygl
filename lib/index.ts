@@ -1,5 +1,3 @@
-import { renderDrawCalls } from "./render/renderDrawCalls"
-
 export { renderDrawCalls } from "./render/renderDrawCalls"
 export { resolveRenderOptions } from "./render/resolveRenderOptions"
 export type { RenderResult } from "./render/renderDrawCalls"
@@ -70,13 +68,7 @@ export {
   renderGLTFToPNGFromGLB,
   type RenderGLTFToPNGFromGLBOptions,
 } from "./render/renderGLTFToPNGFromGLB"
-export function renderSceneFromGLTF(
-  scene: import("./gltf/types").GLTFScene,
-  options?: import("./render/getDefaultRenderOptions").RenderOptionsInput,
-  imageFactory?: import("./image/createUint8Bitmap").ImageFactory,
-) {
-  return renderDrawCalls(scene.drawCalls, options, imageFactory)
-}
+export { renderSceneFromGLTF } from "./render/renderSceneFromGLTF"
 
 export { createOutlineSection } from "./render/createOutlineSection"
 export type { OutlineSection } from "./render/createOutlineSection"

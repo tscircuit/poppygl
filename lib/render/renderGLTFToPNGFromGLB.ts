@@ -4,7 +4,7 @@ import { parseGLB } from "../gltf/parseGLB"
 import { bufferFromDataURI, decodeImageFromBuffer } from "../gltf/resourceUtils"
 import { createUint8Bitmap } from "../image/createUint8Bitmap"
 import type { RenderOptionsInput } from "./getDefaultRenderOptions"
-import { renderDrawCalls } from "./renderDrawCalls"
+import { renderSceneFromGLTF } from "./renderSceneFromGLTF"
 
 export type RenderGLTFToPNGFromGLBOptions = RenderOptionsInput
 
@@ -91,10 +91,6 @@ export async function renderGLTFToPNGFromGLB(
   )
 
   const scene = createSceneFromGLTF(gltf, { buffers, images })
-  const { bitmap } = renderDrawCalls(
-    scene.drawCalls,
-    options,
-    createUint8Bitmap,
-  )
+  const { bitmap } = renderSceneFromGLTF(scene, options, createUint8Bitmap)
   return encodePNG(bitmap)
 }
