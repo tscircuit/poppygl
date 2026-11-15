@@ -4,22 +4,22 @@ import { computeSmoothNormals } from "../gltf/computeSmoothNormals"
 import type { DrawCall, Material } from "../gltf/types"
 import {
   type BitmapLike,
+  createUint8Bitmap,
   type ImageFactory,
   type MutableRGBA,
-  createUint8Bitmap,
 } from "../image/createUint8Bitmap"
+import { clamp } from "../utils/clamp"
+import { mulColor } from "../utils/mulColor"
+import { srgbDecodeToLinear01 } from "../utils/srgbDecodeToLinear01"
+import { srgbEncodeLinear01 } from "../utils/srgbEncodeLinear01"
+import { clipMeshToNearPlane } from "./clipMeshToNearPlane"
+import { GeometryDenoiser } from "./GeometryDenoiser"
 import {
   DEFAULT_LIGHT_DIR,
   DEFAULT_RENDER_OPTIONS,
 } from "./getDefaultRenderOptions"
-import { mulColor } from "../utils/mulColor"
-import { srgbEncodeLinear01 } from "../utils/srgbEncodeLinear01"
-import { srgbDecodeToLinear01 } from "../utils/srgbDecodeToLinear01"
-import { clamp } from "../utils/clamp"
-import { clipMeshToNearPlane } from "./clipMeshToNearPlane"
-import type { StudioLighting } from "./StudioLighting"
-import { GeometryDenoiser } from "./GeometryDenoiser"
 import { rasterizeWideLine } from "./rasterizeWideLine"
+import type { StudioLighting } from "./StudioLighting"
 
 export interface LightSettings {
   dir: readonly [number, number, number]
@@ -102,7 +102,7 @@ export class SoftwareRenderer {
     gammaOut = true,
     options: LineRenderOptions = {},
   ) {
-    const { positions, indices, model, material } = mesh
+    const { positions, indices, model, material, colors } = mesh
     if (!indices) return
 
     const view = camera.view
@@ -146,20 +146,18 @@ export class SoftwareRenderer {
       vNDCz[i] = ndcZ
     }
 
-    let [r, g, b, a] = material.baseColorFactor
-    if (gammaOut) {
-      r = srgbEncodeLinear01(clamp(r, 0, 1))
-      g = srgbEncodeLinear01(clamp(g, 0, 1))
-      b = srgbEncodeLinear01(clamp(b, 0, 1))
-    } else {
-      r = clamp(r, 0, 1)
-      g = clamp(g, 0, 1)
-      b = clamp(b, 0, 1)
+    const [baseR, baseG, baseB, a] = material.baseColorFactor
+    const encodeChannel = (linear: number) => {
+      const clamped = clamp(linear, 0, 1)
+      return ((gammaOut ? srgbEncodeLinear01(clamped) : clamped) * 255) | 0
     }
-
-    const r255 = (r * 255) | 0
-    const g255 = (g * 255) | 0
-    const b255 = (b * 255) | 0
+    const defaultR255 = encodeChannel(baseR)
+    const defaultG255 = encodeChannel(baseG)
+    const defaultB255 = encodeChannel(baseB)
+    let segR255 = defaultR255
+    let segG255 = defaultG255
+    let segB255 = defaultB255
+    const hasVertexColors = Boolean(colors && colors.length >= vertexCount * 3)
     const opacity = clamp(options.opacity ?? 1, 0, 1)
     const sourceAlpha = clamp(a, 0, 1) * opacity
     const depthCompare = options.depthCompare ?? "less"
@@ -201,9 +199,9 @@ export class SoftwareRenderer {
       this.setPixel(
         xi,
         yi,
-        blend(r255, 0),
-        blend(g255, 1),
-        blend(b255, 2),
+        blend(segR255, 0),
+        blend(segG255, 1),
+        blend(segB255, 2),
         outAlpha * 255,
       )
     }
@@ -211,6 +209,14 @@ export class SoftwareRenderer {
     for (let i = 0; i < indices.length; i += 2) {
       const i0 = indices[i + 0]!
       const i1 = indices[i + 1]!
+      if (hasVertexColors) {
+        const cr = (colors![i0 * 3 + 0]! + colors![i1 * 3 + 0]!) * 0.5
+        const cg = (colors![i0 * 3 + 1]! + colors![i1 * 3 + 1]!) * 0.5
+        const cb = (colors![i0 * 3 + 2]! + colors![i1 * 3 + 2]!) * 0.5
+        segR255 = encodeChannel(baseR * cr)
+        segG255 = encodeChannel(baseG * cg)
+        segB255 = encodeChannel(baseB * cb)
+      }
 
       if (strokeWidth !== 1) {
         // Wide edge pixels can lie inside the source face, whose depth slopes
@@ -332,6 +338,249 @@ export class SoftwareRenderer {
         z += zinc
       }
     }
+  }
+
+  drawMeshWireframe(
+    mesh: DrawCall,
+    camera: Camera,
+    cullBackFaces = false,
+    gammaOut = true,
+    options: LineRenderOptions = {},
+  ): number {
+    if (mesh.mode != null && mesh.mode !== 4) return 0
+
+    const alphaMode = mesh.material.alphaMode ?? "OPAQUE"
+    const alphaCutoff = mesh.material.alphaCutoff ?? 0.5
+    const baseAlpha = mesh.material.baseColorFactor[3]!
+    if (alphaMode === "MASK" && baseAlpha < alphaCutoff) return 0
+
+    const { positions, model, material, colors } = mesh
+    const vertexCount = (positions.length / 3) | 0
+    const hasVertexColors = Boolean(colors && colors.length >= vertexCount * 3)
+    const sourceIndices =
+      mesh.indices ??
+      Uint32Array.from({ length: vertexCount }, (_, index) => index)
+    if (sourceIndices.length < 3) return 0
+
+    const mvp = mat4.create()
+    mat4.multiply(
+      mvp,
+      camera.proj,
+      mat4.multiply(mat4.create(), camera.view, model),
+    )
+
+    const distances = new Float64Array(vertexCount)
+    for (let i = 0; i < vertexCount; i++) {
+      distances[i] =
+        (mvp[2]! + mvp[3]!) * positions[i * 3 + 0]! +
+        (mvp[6]! + mvp[7]!) * positions[i * 3 + 1]! +
+        (mvp[10]! + mvp[11]!) * positions[i * 3 + 2]! +
+        mvp[14]! +
+        mvp[15]!
+    }
+
+    const screenCache = cullBackFaces
+      ? new Array<[number, number] | undefined>(vertexCount)
+      : null
+
+    const projectXYZ = (
+      x: number,
+      y: number,
+      z: number,
+    ): [number, number] | null => {
+      const c = vec4.transformMat4(
+        vec4.create(),
+        vec4.fromValues(x, y, z, 1),
+        mvp,
+      )
+      const invW = 1 / c[3]
+      if (!Number.isFinite(invW)) return null
+      const sx = (c[0] * invW * 0.5 + 0.5) * (this.width - 1)
+      const sy = (1 - (c[1] * invW * 0.5 + 0.5)) * (this.height - 1)
+      return [sx, sy]
+    }
+
+    const projectVertex = (index: number): [number, number] | null => {
+      const cached = screenCache![index]
+      if (cached !== undefined) return cached
+      const projected = projectXYZ(
+        positions[index * 3 + 0]!,
+        positions[index * 3 + 1]!,
+        positions[index * 3 + 2]!,
+      )
+      if (projected) screenCache![index] = projected
+      return projected
+    }
+
+    const isFrontFacing = (i0: number, i1: number, i2: number): boolean => {
+      const d0 = distances[i0]!
+      const d1 = distances[i1]!
+      const d2 = distances[i2]!
+      if (d0 >= 0 && d1 >= 0 && d2 >= 0) {
+        const s0 = projectVertex(i0)
+        const s1 = projectVertex(i1)
+        const s2 = projectVertex(i2)
+        if (!s0 || !s1 || !s2) return false
+        return edge(s0, s1, s2) > 0
+      }
+
+      const tri = [i0, i1, i2]
+      const poly: [number, number][] = []
+      for (let j = 0; j < 3; j++) {
+        const a = tri[j]!
+        const b = tri[(j + 1) % 3]!
+        const da = distances[a]!
+        const db = distances[b]!
+        const aIn = da >= 0
+        const bIn = db >= 0
+        if (aIn) {
+          const sa = projectVertex(a)
+          if (!sa) return false
+          poly.push(sa)
+        }
+        if (aIn !== bIn) {
+          const rawT = da / (da - db)
+          const t = aIn ? Math.max(0, rawT - 1e-6) : Math.min(1, rawT + 1e-6)
+          const sb = projectXYZ(
+            positions[a * 3 + 0]! +
+              t * (positions[b * 3 + 0]! - positions[a * 3 + 0]!),
+            positions[a * 3 + 1]! +
+              t * (positions[b * 3 + 1]! - positions[a * 3 + 1]!),
+            positions[a * 3 + 2]! +
+              t * (positions[b * 3 + 2]! - positions[a * 3 + 2]!),
+          )
+          if (!sb) return false
+          poly.push(sb)
+        }
+      }
+      if (poly.length < 3) return false
+      return edge(poly[0]!, poly[1]!, poly[2]!) > 0
+    }
+
+    const extraPositions: number[] = []
+    const extraColors: number[] = []
+    const clippedIntersections = new Map<string, number>()
+    const clipVertex = (a: number, b: number): number => {
+      const lo = a < b ? a : b
+      const hi = a < b ? b : a
+      const key = `${lo}:${hi}`
+      const existing = clippedIntersections.get(key)
+      if (existing !== undefined) return existing
+
+      const dLo = distances[lo]!
+      const dHi = distances[hi]!
+      const rawT = dLo / (dLo - dHi)
+      const t = dLo >= 0 ? Math.max(0, rawT - 1e-6) : Math.min(1, rawT + 1e-6)
+      const newIndex = vertexCount + extraPositions.length / 3
+      extraPositions.push(
+        positions[lo * 3 + 0]! +
+          t * (positions[hi * 3 + 0]! - positions[lo * 3 + 0]!),
+        positions[lo * 3 + 1]! +
+          t * (positions[hi * 3 + 1]! - positions[lo * 3 + 1]!),
+        positions[lo * 3 + 2]! +
+          t * (positions[hi * 3 + 2]! - positions[lo * 3 + 2]!),
+      )
+      if (hasVertexColors) {
+        extraColors.push(
+          colors![lo * 3 + 0]! +
+            t * (colors![hi * 3 + 0]! - colors![lo * 3 + 0]!),
+          colors![lo * 3 + 1]! +
+            t * (colors![hi * 3 + 1]! - colors![lo * 3 + 1]!),
+          colors![lo * 3 + 2]! +
+            t * (colors![hi * 3 + 2]! - colors![lo * 3 + 2]!),
+        )
+      }
+      clippedIntersections.set(key, newIndex)
+      return newIndex
+    }
+
+    const seenEdges = new Set<string>()
+    const lineIndices: number[] = []
+
+    const addWireEdge = (a: number, b: number) => {
+      const da = distances[a]!
+      const db = distances[b]!
+      if (!Number.isFinite(da) || !Number.isFinite(db)) return
+      if (da < 0 && db < 0) return
+
+      const keyA = `${positions[a * 3 + 0]},${positions[a * 3 + 1]},${positions[a * 3 + 2]}`
+      const keyB = `${positions[b * 3 + 0]},${positions[b * 3 + 1]},${positions[b * 3 + 2]}`
+      if (keyA === keyB) return
+      const edgeKey = keyA < keyB ? `${keyA}|${keyB}` : `${keyB}|${keyA}`
+      if (seenEdges.has(edgeKey)) return
+      seenEdges.add(edgeKey)
+
+      const start = da >= 0 ? a : clipVertex(a, b)
+      const end = db >= 0 ? b : clipVertex(a, b)
+      lineIndices.push(start, end)
+    }
+
+    for (let i = 0; i + 2 < sourceIndices.length; i += 3) {
+      const i0 = sourceIndices[i + 0]!
+      const i1 = sourceIndices[i + 1]!
+      const i2 = sourceIndices[i + 2]!
+
+      const d0 = distances[i0]!
+      const d1 = distances[i1]!
+      const d2 = distances[i2]!
+      if (!Number.isFinite(d0) || !Number.isFinite(d1) || !Number.isFinite(d2))
+        continue
+      if (d0 < 0 && d1 < 0 && d2 < 0) continue
+      if (cullBackFaces && !isFrontFacing(i0, i1, i2)) continue
+
+      addWireEdge(i0, i1)
+      addWireEdge(i1, i2)
+      addWireEdge(i2, i0)
+    }
+
+    if (lineIndices.length === 0) return 0
+
+    let linePositions = positions
+    if (extraPositions.length > 0) {
+      linePositions = new Float32Array(positions.length + extraPositions.length)
+      linePositions.set(positions, 0)
+      linePositions.set(extraPositions, positions.length)
+    }
+
+    let lineColors = hasVertexColors ? colors! : null
+    if (hasVertexColors && extraColors.length > 0) {
+      lineColors = new Float32Array(colors!.length + extraColors.length)
+      lineColors.set(colors!, 0)
+      lineColors.set(extraColors, colors!.length)
+    }
+
+    const emission = material.emissiveFactor ?? [0, 0, 0]
+    const strength = material.emissiveStrength ?? 1
+    const wireColor: [number, number, number, number] = [
+      clamp(material.baseColorFactor[0]! + emission[0] * strength, 0, 1),
+      clamp(material.baseColorFactor[1]! + emission[1] * strength, 0, 1),
+      clamp(material.baseColorFactor[2]! + emission[2] * strength, 0, 1),
+      alphaMode === "BLEND" ? baseAlpha : 1,
+    ]
+
+    this.drawLines(
+      {
+        positions: linePositions,
+        normals: null,
+        uvs: null,
+        colors: lineColors,
+        indices: new Uint32Array(lineIndices),
+        model,
+        material: {
+          ...material,
+          baseColorFactor: wireColor,
+        },
+        mode: 1,
+      },
+      camera,
+      gammaOut,
+      {
+        ...options,
+        depthWrite: options.depthWrite ?? alphaMode !== "BLEND",
+      },
+    )
+
+    return lineIndices.length / 2
   }
 
   sampleTextureNearest(

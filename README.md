@@ -116,6 +116,8 @@ const png = await renderGLTFToPNGFromGLB(glb, {
 
 `renderGLTFToPNGFromURL` accepts the same render options as the lower-level APIs:
 
+- `renderStyle`: choose `"shaded"` (default), `"outline"`, or `"wireframe"`.
+- `wireframe`: shorthand boolean to enable `"wireframe"` rendering (default `false`).
 - `realistic`: enable studio lighting, reflections, and soft shadows (default `false`).
 - `width`/`height`: output resolution in pixels (defaults `800`/`600`).
 - `supersampling`: render at `width * supersampling` / `height * supersampling`, then downsample (default `1`).
@@ -130,7 +132,7 @@ const png = await renderGLTFToPNGFromGLB(glb, {
 - `lightDir`: directional light vector for regular mode (default `[-0.4, -0.9, -0.2]`).
 - `ambient`: ambient lighting contribution from 0 to 1 (default `0.15`; regular mode only).
 - `gamma`: enable gamma correction (default `true`).
-- `cull`: enable back-face culling (default `true`).
+- `cull`: enable back-face culling (default `true` for shaded renders; `false` for outline and wireframe).
 - `backgroundColor`: a hex string such as `"#e5e7eb"`, or an RGB tuple with values from 0 to 1.
 - `grid`: show a ground grid (default `false`), or provide grid options.
 - `showEdges`: draw visible boundary and crease edges on all triangle meshes (default `false`).
@@ -371,3 +373,20 @@ These are raster outline illustrations, not CAD/B-rep exports: silhouettes
 follow the input tessellation, crease extraction uses a 30-degree threshold, and
 hidden lines are resolved against raster depth. Dimension annotations, paper sheet
 layout and TSX/core integration are separate downstream work.
+
+### Wireframe rendering
+
+```ts
+const png = await renderGLTFToPNGFromGLB(glbBytes, {
+  renderStyle: "wireframe",
+  lineWidth: 1.5,
+  supersampling: 2,
+  backgroundColor: "#111827",
+})
+```
+
+`renderStyle: "wireframe"` (or `wireframe: true`) renders triangle edges using
+each primitive's material color without filling triangle faces. Back-face
+culling defaults to `false` so interior and rear mesh edges remain visible; pass
+`cull: true` to draw only front-facing triangles. `lineWidth` controls stroke
+thickness in output pixels across supersampling levels.

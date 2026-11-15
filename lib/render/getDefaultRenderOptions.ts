@@ -1,5 +1,5 @@
-import type { OutlineSection } from "./createOutlineSection"
 import type { GridOptions } from "../gltf/types"
+import type { OutlineSection } from "./createOutlineSection"
 
 export const DEFAULT_LIGHT_DIR = [-0.4, -0.9, -0.2] as const
 
@@ -58,8 +58,10 @@ export function hexToRgb(hex: string): [number, number, number] | null {
 }
 
 export interface RenderOptions {
-  /** White opaque surfaces with black boundary, crease and silhouette edges. */
-  renderStyle: "shaded" | "outline"
+  /** Surface shading, white-surface technical outline, or triangle wireframe. */
+  renderStyle: "shaded" | "outline" | "wireframe"
+  /** Render triangle meshes as wireframe edges without filling faces. */
+  wireframe: boolean
   /** Section cuts are supported in outline style only. */
   section: OutlineSection | null
   /** Outline defaults to orthographic; existing renders stay perspective. */
@@ -103,6 +105,7 @@ export type RenderOptionsInput = Partial<RenderOptions>
 
 export const DEFAULT_RENDER_OPTIONS: RenderOptions = {
   renderStyle: "shaded",
+  wireframe: false,
   section: null,
   projection: "perspective",
   orthographicHeight: null,

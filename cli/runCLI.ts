@@ -13,7 +13,7 @@ export async function runCLI() {
   const argv = parseCliArgs(process.argv.slice(2))
   if (argv._.length === 0) {
     console.error(
-      "Usage: poppygl model.gltf [--out out.png] [--w 960] [--h 540] [--fov 60] [--supersampling 2]",
+      "Usage: poppygl model.gltf [--out out.png] [--w 960] [--h 540] [--fov 60] [--supersampling 2] [--wireframe] [--style shaded|outline|wireframe]",
     )
     process.exit(1)
   }
@@ -44,7 +44,23 @@ export async function runCLI() {
     parseVec3(argv.light) ?? (DEFAULT_LIGHT_DIR as [number, number, number])
   const camPos = parseVec3(argv.cam)
   const lookAt = parseVec3(argv.look)
-  const cull = argv.noCull ? false : true
+  const wireframe =
+    argv.wireframe === true ||
+    argv.wireframe === "true" ||
+    argv.wireframe === "1"
+  const styleArg =
+    typeof argv.style === "string"
+      ? argv.style
+      : typeof argv.renderStyle === "string"
+        ? argv.renderStyle
+        : undefined
+  const renderStyle =
+    styleArg === "outline" || styleArg === "wireframe" || styleArg === "shaded"
+      ? styleArg
+      : wireframe
+        ? "wireframe"
+        : undefined
+  const cull = argv.noCull ? false : argv.cull ? true : undefined
   const gamma = argv.noGamma ? false : true
   const supersamplingArg =
     typeof argv.supersampling === "string"
@@ -66,7 +82,9 @@ export async function runCLI() {
     lightDir,
     camPos,
     lookAt,
-    cull,
+    ...(renderStyle ? { renderStyle } : {}),
+    ...(wireframe ? { wireframe } : {}),
+    ...(cull !== undefined ? { cull } : {}),
     gamma,
     supersampling,
   })
