@@ -29,9 +29,6 @@ beforeAll(async () => {
   ).toMatchPngSnapshot(import.meta.path)
 }, 120_000)
 
-test.failing(
-  "Classic F1's constant white outline surfaces skip shader interpolation",
-  () => {
-    expect(interpolations).toBe(0)
-  },
-)
+test("Classic F1's constant white outline surfaces skip shader interpolation", () => {
+  expect(interpolations).toBe(0)
+})

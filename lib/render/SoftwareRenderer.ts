@@ -387,6 +387,30 @@ export class SoftwareRenderer {
     const materialId = this.denoiser?.materialId(material) ?? 0
     const lightDir = light.dir ?? DEFAULT_LIGHT_DIR
     const ambient = clamp(light.ambient ?? DEFAULT_RENDER_OPTIONS.ambient, 0, 1)
+    // Constant unlit opaque surfaces need only their color and depth. Outline
+    // rendering supplies exactly this material, regardless of mesh complexity.
+    const flatColor =
+      ambient === 1 &&
+      !studio &&
+      !this.denoiser &&
+      !colors &&
+      !material.baseColorTexture &&
+      !material.emissiveFactor &&
+      !material.emissiveTexture &&
+      (material.alphaMode ?? "OPAQUE") === "OPAQUE"
+        ? material.baseColorFactor
+            .slice(0, 3)
+            .map(
+              (channel) =>
+                ((gammaOut
+                  ? srgbEncodeLinear01(clamp(channel, 0, 1))
+                  : clamp(channel, 0, 1)) *
+                  255) |
+                0,
+            )
+        : null
+    const depthOnly = visibility?.depthOnly ?? false
+    const needsShading = !depthOnly && !flatColor
     const L = studio
       ? null
       : vec3.normalize(
@@ -411,10 +435,9 @@ export class SoftwareRenderer {
         return a
       })()
 
-    let useNormals = normals
-    if (!useNormals) {
-      useNormals = computeSmoothNormals(positions, idx)
-    }
+    let useNormals = needsShading
+      ? (normals ?? computeSmoothNormals(positions, idx))
+      : null
 
     const clipped = clipMeshToNearPlane(
       { ...mesh, normals: useNormals, indices: idx },
@@ -426,20 +449,19 @@ export class SoftwareRenderer {
     colors = clipped.colors
     idx = clipped.indices!
     vertexCount = positions.length / 3
-    const depthOnly = visibility?.depthOnly ?? false
 
     const vScreen = new Array<[number, number]>(vertexCount)
     const vInvW = new Float32Array(vertexCount)
     const vNDCz = new Float32Array(vertexCount)
     const vWorldN = new Array<[number, number, number]>(
-      depthOnly ? 0 : vertexCount,
+      needsShading ? vertexCount : 0,
     )
     const vWorldP =
-      studio && !depthOnly
+      studio && needsShading
         ? new Array<[number, number, number]>(vertexCount)
         : null
     const vColor = new Array<[number, number, number]>(
-      depthOnly ? 0 : vertexCount,
+      needsShading ? vertexCount : 0,
     )
 
     for (let i = 0; i < vertexCount; i++) {
@@ -467,7 +489,7 @@ export class SoftwareRenderer {
       vInvW[i] = invW
       vNDCz[i] = ndcZ
 
-      if (depthOnly) continue
+      if (!needsShading) continue
 
       const n = vec3.fromValues(
         useNormals[i * 3 + 0]!,
@@ -575,6 +597,19 @@ export class SoftwareRenderer {
 
           if (visibility?.depthOnly) {
             visibility.winners[di] = visibility.triangleOffset + i / 3
+            continue
+          }
+
+          if (flatColor) {
+            this.setPixel(
+              x,
+              y,
+              flatColor[0]!,
+              flatColor[1]!,
+              flatColor[2]!,
+              255,
+              true,
+            )
             continue
           }
 
