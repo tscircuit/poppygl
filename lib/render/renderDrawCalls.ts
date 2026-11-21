@@ -1,11 +1,16 @@
-import { createOutlineSection } from "./createOutlineSection"
 import { buildCamera, type Camera } from "../camera/buildCamera"
 import { computeWorldAABB } from "../gltf/computeWorldAABB"
-import { createGrid } from "../gltf/createGrid"
 import { createEdgeDrawCall } from "../gltf/createEdgeDrawCall"
+import { createGrid } from "../gltf/createGrid"
 import type { DrawCall, GridOptions } from "../gltf/types"
 import type { BitmapLike, ImageFactory } from "../image/createUint8Bitmap"
 import { createUint8Bitmap } from "../image/createUint8Bitmap"
+import { createExplosionArrowDrawCall } from "./createExplosionArrowDrawCall"
+import {
+  clipExplosionLineDrawCall,
+  createExplosionLineDrawCall,
+} from "./createExplosionLineDrawCall"
+import { createOutlineSection } from "./createOutlineSection"
 import { downsampleBitmap } from "./downsampleBitmap"
 import { drawDebugPoints } from "./drawDebugPoints"
 import { drawInfiniteGrid } from "./drawInfiniteGrid"
@@ -17,11 +22,6 @@ import {
 import { resolveRenderOptions } from "./resolveRenderOptions"
 import { SoftwareRenderer } from "./SoftwareRenderer"
 import { StudioLighting } from "./StudioLighting"
-import {
-  createExplosionLineDrawCall,
-  clipExplosionLineDrawCall,
-} from "./createExplosionLineDrawCall"
-import { createExplosionArrowDrawCall } from "./createExplosionArrowDrawCall"
 
 export interface RenderResult {
   bitmap: BitmapLike
@@ -173,6 +173,7 @@ export function renderDrawCalls(
   const triangleOffsets: number[] = []
   if (
     studio &&
+    options.renderStyle !== "wireframe" &&
     opaqueDraws.length > 1 &&
     opaqueDraws.every((dc) => dc.mode !== 1)
   ) {
@@ -200,6 +201,10 @@ export function renderDrawCalls(
       const dc = dcs[i]!
       if (dc.mode === 1) {
         renderer.drawLines(dc, camera, options.gamma, {
+          width: options.lineWidth * options.supersampling,
+        })
+      } else if (options.renderStyle === "wireframe") {
+        renderer.drawMeshWireframe(dc, camera, options.cull, options.gamma, {
           width: options.lineWidth * options.supersampling,
         })
       } else {

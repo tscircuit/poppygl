@@ -1,7 +1,7 @@
 import {
-  DEFAULT_RENDER_OPTIONS,
   type CameraRotation,
   type CameraUp,
+  DEFAULT_RENDER_OPTIONS,
   type RenderOptions,
   type RenderOptionsInput,
 } from "./getDefaultRenderOptions"
@@ -39,11 +39,17 @@ export function resolveRenderOptions(
       : DEFAULT_RENDER_OPTIONS.supersampling
 
   const outline = options.renderStyle === "outline"
+  const wireframe =
+    !outline &&
+    (options.renderStyle === "wireframe" ||
+      (options.renderStyle === undefined && options.wireframe === true))
+  const renderStyle = outline ? "outline" : wireframe ? "wireframe" : "shaded"
 
   return {
     ...DEFAULT_RENDER_OPTIONS,
     ...options,
-    renderStyle: outline ? "outline" : "shaded",
+    renderStyle,
+    wireframe,
     projection:
       options.projection === "orthographic" ||
       (outline && options.projection !== "perspective")
@@ -63,7 +69,12 @@ export function resolveRenderOptions(
           cull: false,
           backgroundColor: options.backgroundColor ?? "#ffffff",
         }
-      : {}),
+      : wireframe
+        ? {
+            realistic: false,
+            cull: options.cull ?? false,
+          }
+        : {}),
     supersampling,
     lightDir:
       options.lightDir != null
