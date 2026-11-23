@@ -17,6 +17,8 @@ export interface Material {
 }
 
 export interface DrawCall {
+  /** Share this identity among the triangle primitives of one mesh instance. */
+  meshInstance?: object
   /** Generated section cap; preserve its hatch material in outline style. */
   outlineSectionCap?: boolean
   positions: Float32Array
