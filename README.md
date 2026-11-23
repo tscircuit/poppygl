@@ -335,6 +335,10 @@ const png = await renderGLTFToPNGFromURL("https://example.com/housing.glb", {
 
 `renderStyle: "outline"` uses white opaque surfaces, black boundary/crease
 edges and view-dependent silhouettes, and orthographic projection by default.
+Outline edges use the triangle neighbors across material primitives of the same
+glTF mesh instance. A flat face can span several primitives and still draw as a
+single face. When supplying draw calls directly, set `meshInstance` to the same
+object for primitives that belong to one instance and share a model transform.
 Hidden edges are omitted by default, including model-level hidden-edge flags;
 `showHiddenEdges: true` adds dashed occluded strokes with `hiddenEdgeOpacity`.
 Materials, textures, vertex colors, transparency and lighting are ignored in this
@@ -362,8 +366,8 @@ The plane is specified in **world glTF coordinates**, normally +Y up, using mode
 scene units. `less` retains axis coordinates <= offset; `greater` retains >= offset.
 Closed cut surfaces receive diagonal hatching in the section plane (spacing defaults
 to one scene unit). Nested loops preserve cavities. Open cut chains remain uncapped; non-manifold inputs are unsupported. `createOutlineSection` exposes the prepared draw calls and
-`openChains` count for callers that need to report incomplete caps. Primitives are
-capped independently; surfaces split across separate primitives cannot form a cap.
+`openChains` count for callers that need to report incomplete caps. Primitives
+of one mesh instance can form a continuous cap. Separate instances are capped independently.
 Sections outside or tangent to a mesh do not create artificial caps. Section cuts
 currently require outline style; shaded sections are not supported.
 

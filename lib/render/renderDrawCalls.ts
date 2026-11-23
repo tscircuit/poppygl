@@ -1,6 +1,7 @@
 import { createOutlineSection } from "./createOutlineSection"
 import { buildCamera, type Camera } from "../camera/buildCamera"
 import { computeWorldAABB } from "../gltf/computeWorldAABB"
+import { joinOutlinePrimitives } from "../gltf/joinOutlinePrimitives"
 import { createGrid } from "../gltf/createGrid"
 import { createEdgeDrawCall } from "../gltf/createEdgeDrawCall"
 import type { DrawCall, GridOptions } from "../gltf/types"
@@ -249,7 +250,12 @@ export function renderDrawCalls(
   renderGroup(blendDraws)
   renderer.denoise(options.gamma)
 
-  for (const dc of drawCalls) {
+  const edgeMeshes =
+    options.renderStyle === "outline" &&
+    (options.showEdges || options.showHiddenEdges)
+      ? joinOutlinePrimitives(drawCalls)
+      : drawCalls
+  for (const dc of edgeMeshes) {
     const showHiddenEdges = options.showHiddenEdges ?? dc.showHiddenEdges
     if (!options.showEdges && !showHiddenEdges) continue
     const edgeDrawCall = createEdgeDrawCall(

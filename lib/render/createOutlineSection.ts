@@ -1,5 +1,6 @@
 import { mat4, vec3 } from "gl-matrix"
 import earcut from "earcut"
+import { joinOutlinePrimitives } from "../gltf/joinOutlinePrimitives"
 import type { DrawCall } from "../gltf/types"
 import { createUint8Bitmap } from "../image/createUint8Bitmap"
 
@@ -140,7 +141,7 @@ function contains(p: Point2, polygon: Point2[]) {
 }
 
 /** Prepare opaque monochrome section geometry without modifying the input.
- * Separate primitives are capped independently; open surfaces remain uncapped.
+ * Each mesh instance is capped independently; open surfaces remain uncapped.
  */
 export function createOutlineSection(
   drawCalls: DrawCall[],
@@ -167,7 +168,7 @@ export function createOutlineSection(
       texture.data.set([c, c, c, 255], (y * 128 + x) * 4)
     }
   const sign = spec.keepSide === "less" ? 1 : -1
-  for (const dc of drawCalls) {
+  for (const dc of joinOutlinePrimitives(drawCalls)) {
     const points: number[][] = []
     for (let i = 0; i < dc.positions.length; i += 3)
       points.push(
@@ -232,6 +233,7 @@ export function createOutlineSection(
     }
     const mesh: DrawCall = {
       ...dc,
+      meshInstance: undefined,
       positions: new Float32Array(clipped),
       indices: null,
       model: mat4.create(),

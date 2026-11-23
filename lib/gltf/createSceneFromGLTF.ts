@@ -338,6 +338,7 @@ export function createSceneFromGLTF(
     if (Number.isInteger(node.mesh)) {
       const mesh = meshes[node.mesh]
       if (mesh) {
+        const meshInstance = mesh.primitives?.length > 1 ? {} : undefined
         for (const primitive of mesh.primitives || []) {
           if (primitive.mode != null && primitive.mode !== 4) continue
           const posAcc = primitive.attributes?.POSITION
@@ -365,6 +366,7 @@ export function createSceneFromGLTF(
             primitive.material,
           )
           drawCalls.push({
+            meshInstance,
             positions,
             normals,
             uvs,
