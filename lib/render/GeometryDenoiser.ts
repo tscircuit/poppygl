@@ -111,6 +111,15 @@ export class GeometryDenoiser {
             g += source[p + 1]! * weight
             b += source[p + 2]! * weight
           }
+          // A degenerate guide (for example a zero or non-unit normal) rejects
+          // every neighbor, including this pixel. Keep the unfiltered radiance
+          // rather than emitting NaN.
+          if (total === 0) {
+            total = 1
+            r = source[k]!
+            g = source[k + 1]!
+            b = source[k + 2]!
+          }
           if (pass === 0) {
             this.horizontal[k] = r / total
             this.horizontal[k + 1] = g / total
